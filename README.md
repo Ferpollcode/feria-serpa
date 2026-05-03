@@ -1,48 +1,108 @@
-# Feria Nicolas Serpa - Version React
+# Feria Nicolas Serpa
 
-Esta carpeta contiene la migracion inicial de la aplicacion a React.
+Aplicacion web en React para la gestion diaria de la Feria Nicolas Serpa. Permite administrar puestos, registrar cobranzas, cargar gastos, controlar playa de autos y consultar estadisticas operativas desde una interfaz responsive para escritorio y mobile.
 
-## Estructura
+## Funcionalidades
 
-- `src/App.jsx`: componentes principales de la app.
-- `src/data.js`: sectores, rubros, marcas, colores y navegacion.
-- `src/utils.js`: utilidades de fechas, importes, estado local y formatos.
-- `src/styles.css`: estilos adaptados desde la version original.
-- `public/assets/logo-feria-serpa.png`: logo definitivo.
+- Panel general con metricas del dia y del mes.
+- Mapa visual de puestos por sector.
+- Alta y edicion de puestos.
+- Filtros por sector, estado y busqueda de puesteros.
+- Registro de cobranzas con comprobante.
+- Acceso a WhatsApp para enviar comprobantes de pago.
+- Registro y listado de gastos.
+- Control de ingreso de autos con comprobante de playa.
+- Estadisticas por dia, domingo actual y mes.
+- Persistencia local en el navegador.
+- Diseno responsive con menu mobile desplegable.
 
-## Como ejecutar
+## Tecnologias
 
-Requiere Node.js y dependencias de React/Vite.
+- React 19
+- Vite 7
+- JavaScript
+- CSS
+- LocalStorage
+
+## Requisitos
+
+- Node.js instalado.
+- npm instalado.
+
+## Instalacion
 
 ```bash
 npm install
+```
+
+## Uso en desarrollo
+
+```bash
 npm run dev
 ```
 
-Luego abrir la URL que indique Vite, normalmente:
+Luego abrir la URL indicada por Vite. Normalmente:
 
 ```txt
 http://localhost:5173
 ```
 
-## Alcance migrado
+## Build de produccion
 
-Incluye componentes para:
-
-- Panel general con mapa visual de puestos.
-- Gestion de puestos.
-- Cobranzas y comprobante.
-- Gastos.
-- Playa de autos.
-- Estadisticas.
-- Sidebar, metricas, listas registradas, modal de puesto y tickets.
-
-## Importante
-
-La version HTML original sigue intacta en la carpeta principal. Esta version React usa otra clave de almacenamiento local:
-
-```txt
-feria-nicolas-serpa-react-v1
+```bash
+npm run build
 ```
 
-Eso evita pisar los datos cargados en la version anterior.
+El resultado se genera en `dist/`.
+
+## Vista previa del build
+
+```bash
+npm run preview
+```
+
+## Estructura del proyecto
+
+```txt
+react-app/
+  public/
+    assets/
+      logo-feria-serpa.png
+  src/
+    App.jsx
+    data.js
+    main.jsx
+    styles.css
+    utils.js
+  index.html
+  package.json
+  vite.config.js
+```
+
+## Archivos principales
+
+- `src/App.jsx`: componentes y flujos principales de la aplicacion.
+- `src/data.js`: sectores, rubros, marcas, colores y opciones de navegacion.
+- `src/utils.js`: helpers de fechas, importes, persistencia y formatos.
+- `src/styles.css`: estilos generales, responsive, menu, tablas, tickets y modal.
+- `public/assets/logo-feria-serpa.png`: logo utilizado en la interfaz.
+
+## Datos locales
+
+La aplicacion guarda la informacion en `localStorage`, usando una clave propia para esta version React. Los datos quedan almacenados en el navegador donde se usa la app.
+
+Si se borra la memoria del navegador o se cambia de dispositivo, esos datos locales no se transfieren automaticamente.
+
+## Comandos disponibles
+
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+## Notas
+
+- `node_modules/` y `dist/` estan excluidos del repositorio mediante `.gitignore`.
+- El proyecto no requiere backend para funcionar en esta version.
+- El boton "Recargar demo" restaura datos de ejemplo para pruebas.
