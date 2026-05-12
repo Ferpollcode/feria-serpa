@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { carBrands, carColors, navItems, rubros, sectors } from "./data.js";
+import { carBrands, carColors, navItems, rubros, sectors, users } from "./data.js";
 import {
   comparePuestos,
   createDemoState,
@@ -32,6 +32,8 @@ const titles = {
   estadisticas: "Estadisticas",
 };
 
+const sessionKey = "feria-serpa-current-user";
+
 const emptyPuesto = {
   id: "",
   sector: "Calle A",
@@ -48,13 +50,43 @@ const emptyPuesto = {
 
 export function App() {
   const [state, setState] = useState(loadState);
-  const [view, setView] = useState("dashboard");
+  const [currentUser, setCurrentUser] = useState(() => loadSessionUser());
+  const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
   const [carTicket, setCarTicket] = useState(null);
 
   useEffect(() => saveState(state), [state]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    if (!currentUser.allowedViews.includes(view)) setView(currentUser.allowedViews[0]);
+  }, [currentUser, view]);
+
+  const login = ({ username, password }) => {
+    const normalizedUsername = username.trim().toUpperCase().replace(/\s+/g, " ");
+    const user = users.find((item) => item.username === normalizedUsername && item.password === password);
+    if (!user) return false;
+    const sessionUser = {
+      username: user.username,
+      role: user.role,
+      allowedViews: user.allowedViews,
+    };
+    localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
+    setCurrentUser(sessionUser);
+    setView(sessionUser.allowedViews[0]);
+    return true;
+  };
+
+  const logout = () => {
+    localStorage.removeItem(sessionKey);
+    setCurrentUser(null);
+    setView("dashboard");
+    setEditingPuesto(null);
+    setLastPayment(null);
+    setCarTicket(null);
+  };
 
   const updateState = (recipe) => {
     setState((current) => {
@@ -94,7 +126,7 @@ export function App() {
       return;
     }
     const payment = {
-      id: crypto.randomUUID(),
+      id: form.id || crypto.randomUUID(),
       puestoId: puesto.id,
       sector: puesto.sector,
       numero: puesto.numero,
@@ -103,12 +135,14 @@ export function App() {
       concept: form.concept,
       method: form.method,
       amount: Number(form.amount),
-      date: new Date().toISOString(),
+      date: form.date || new Date().toISOString(),
     };
     updateState((draft) => {
       const draftPuesto = draft.puestos.find((item) => item.id === puesto.id);
       draftPuesto.pago = "pagado";
-      draft.payments.unshift(payment);
+      const index = draft.payments.findIndex((item) => item.id === payment.id);
+      if (index >= 0) draft.payments[index] = payment;
+      else draft.payments.unshift(payment);
     });
     setLastPayment(payment);
   };
@@ -139,6 +173,7 @@ export function App() {
       plate: car.plate.trim().toUpperCase(),
       amount: Number(car.amount),
       date: car.date || new Date().toISOString(),
+      entryUser: car.entryUser || currentUser?.username || "",
     };
     updateState((draft) => {
       const index = draft.cars.findIndex((item) => item.id === next.id);
@@ -155,19 +190,23 @@ export function App() {
     if (carTicket && ids.includes(carTicket.id)) setCarTicket(null);
   };
 
+  if (!currentUser) return <LoginScreen onLogin={login} />;
+
   return (
     <div className="app-shell">
-      <Sidebar view={view} setView={setView} />
+      <Sidebar view={view} setView={setView} currentUser={currentUser} onLogout={logout} />
       <main className="shell">
         <header className="topbar">
           <div>
             <p className="eyebrow">Operacion diaria</p>
             <h2>{titles[view]}</h2>
           </div>
-          <div className="top-actions">
-            <button className="ghost" onClick={resetDemo}>Recargar demo</button>
-            <button className="primary" onClick={() => setEditingPuesto(emptyPuesto)}>Nuevo puesto</button>
-          </div>
+          {currentUser.role === "maestro" && (
+            <div className="top-actions">
+              <button className="ghost" onClick={resetDemo}>Recargar demo</button>
+              <button className="primary" onClick={() => setEditingPuesto(emptyPuesto)}>Nuevo puesto</button>
+            </div>
+          )}
         </header>
 
         {view === "dashboard" && (
@@ -180,10 +219,10 @@ export function App() {
         )}
         {view === "puestos" && <Puestos state={state} editPuesto={setEditingPuesto} goCollect={(puesto) => setView("cobranza")} />}
         {view === "cobranza" && (
-          <Cobranza state={state} collectPayment={collectPayment} deletePayments={deletePayments} lastPayment={lastPayment} />
+          <Cobranza state={state} collectPayment={collectPayment} deletePayments={deletePayments} lastPayment={lastPayment} setLastPayment={setLastPayment} />
         )}
         {view === "gastos" && <Gastos state={state} saveExpense={saveExpense} />}
-        {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} />}
+        {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} setCarTicket={setCarTicket} currentUser={currentUser} />}
         {view === "estadisticas" && <Estadisticas state={state} />}
       </main>
 
@@ -192,9 +231,55 @@ export function App() {
   );
 }
 
-function Sidebar({ view, setView }) {
+function LoginScreen({ onLogin }) {
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [error, setError] = useState("");
+
+  const submit = (event) => {
+    event.preventDefault();
+    setError("");
+    if (!onLogin(form)) setError("Usuario o contraseña incorrectos.");
+  };
+
+  return (
+    <main className="login-screen">
+      <section className="login-card">
+        <img className="login-logo" src="/assets/logo-feria-serpa.png" alt="Feria Nicolas Serpa" />
+        <div>
+          <p className="eyebrow">Acceso al sistema</p>
+          <h1>Feria Nicolas Serpa</h1>
+        </div>
+        <form className="form" onSubmit={submit}>
+          <label>Usuario
+            <input
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              autoComplete="username"
+              autoCapitalize="characters"
+              required
+            />
+          </label>
+          <label>Contraseña
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          {error && <p className="login-error">{error}</p>}
+          <button className="primary">Ingresar</button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function Sidebar({ view, setView, currentUser, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const activeLabel = navItems.find(([id]) => id === view)?.[1] || "Menu";
+  const availableNavItems = navItems.filter(([id]) => currentUser.allowedViews.includes(id));
+  const activeLabel = availableNavItems.find(([id]) => id === view)?.[1] || "Menu";
 
   const selectView = (id) => {
     setView(id);
@@ -222,12 +307,16 @@ function Sidebar({ view, setView }) {
         <i aria-hidden="true" />
       </button>
       <nav id="main-navigation" className={`nav ${menuOpen ? "open" : ""}`}>
-        {navItems.map(([id, label]) => (
+        {availableNavItems.map(([id, label]) => (
           <button key={id} className={`nav-item nav-item-${id} ${view === id ? "active" : ""}`} onClick={() => selectView(id)}>
             {label}
           </button>
         ))}
       </nav>
+      <div className="sidebar-user">
+        <span>{currentUser.username}</span>
+        <button className="nav-item logout-button" onClick={onLogout}>Salir</button>
+      </div>
     </aside>
   );
 }
@@ -348,15 +437,43 @@ function Puestos({ state, editPuesto }) {
   );
 }
 
-function Cobranza({ state, collectPayment, deletePayments, lastPayment }) {
+function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastPayment }) {
   const occupied = state.puestos.filter((p) => p.ocupacion === "ocupado").sort(comparePuestos);
   const [form, setForm] = useState({ puestoId: occupied[0]?.id || "", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
   const [selected, setSelected] = useState([]);
   const puesto = state.puestos.find((p) => p.id === form.puestoId);
 
   useEffect(() => {
-    if (puesto) setForm((current) => ({ ...current, amount: puesto.importe }));
+    if (puesto && !form.id) setForm((current) => ({ ...current, amount: puesto.importe }));
   }, [form.puestoId]);
+
+  const resetForm = () => {
+    setForm({ puestoId: occupied[0]?.id || "", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+  };
+
+  const editPayment = (payment) => {
+    setForm({
+      id: payment.id,
+      puestoId: payment.puestoId,
+      concept: payment.concept,
+      method: payment.method,
+      amount: payment.amount,
+      date: payment.date,
+    });
+  };
+
+  const printPayment = (payment) => {
+    setLastPayment(payment);
+    window.setTimeout(printPaymentTicket, 0);
+  };
+
+  const printPaymentTicket = () => {
+    document.body.classList.add("printing-payment-ticket");
+    const cleanup = () => document.body.classList.remove("printing-payment-ticket");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.print();
+    window.setTimeout(cleanup, 1000);
+  };
 
   const sendWhatsapp = async () => {
     if (!lastPayment) return;
@@ -371,8 +488,11 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment }) {
   return (
     <div className="payment-layout">
       <section className="panel">
-        <div className="panel-head"><h3>Emitir cobro</h3></div>
-        <form className="form" onSubmit={(event) => { event.preventDefault(); collectPayment(form); }}>
+        <div className="panel-head">
+          <h3>{form.id ? "Editar cobro" : "Emitir cobro"}</h3>
+          {form.id && <button className="ghost" onClick={resetForm}>Nuevo cobro</button>}
+        </div>
+        <form className="form" onSubmit={(event) => { event.preventDefault(); collectPayment(form); resetForm(); }}>
           <label>Puesto
             <select value={form.puestoId} onChange={(e) => setForm({ ...form, puestoId: e.target.value })}>
               {occupied.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
@@ -389,7 +509,7 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment }) {
               <option>Efectivo</option><option>Transferencia</option><option>Debito</option><option>Credito</option>
             </select>
           </label>
-          <button className="primary">Cobrar y generar ticket</button>
+          <button className="primary">{form.id ? "Guardar cambios" : "Cobrar y generar ticket"}</button>
         </form>
         <RegisteredList
           title="Cobros registrados"
@@ -399,12 +519,14 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment }) {
           renderMain={(p) => `${p.sector} ${p.numero} - ${p.name}`}
           renderDetail={(p) => `${p.concept} | ${p.method} | ${formatDate(p.date)}`}
           onDelete={(ids) => deletePayments(ids)}
+          onEdit={editPayment}
+          onPrint={printPayment}
         />
       </section>
       <section className="ticket panel">
         <Ticket payment={lastPayment} />
         <div className="ticket-actions print-hide">
-          <button className="ghost" onClick={() => window.print()}>Imprimir ticket</button>
+          <button className="ghost" onClick={printPaymentTicket}>Imprimir ticket</button>
           <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>WhatsApp</button>
         </div>
       </section>
@@ -441,15 +563,48 @@ function Gastos({ state, saveExpense }) {
   );
 }
 
-function Playa({ state, saveCar, deleteCars, carTicket }) {
-  const [form, setForm] = useState({ plate: "", brand: "", color: "", amount: 1000 });
+function Playa({ state, saveCar, deleteCars, carTicket, setCarTicket, currentUser }) {
+  const [form, setForm] = useState({ plate: "", brand: "", color: "", amount: 2000 });
   const [selected, setSelected] = useState([]);
   const today = state.cars.filter((c) => isToday(c.date));
+
+  const printCarTicket = () => {
+    document.body.classList.add("printing-car-ticket");
+    const cleanup = () => document.body.classList.remove("printing-car-ticket");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.print();
+    window.setTimeout(cleanup, 1000);
+  };
+
+  const resetForm = () => {
+    setForm({ plate: "", brand: "", color: "", amount: 2000 });
+  };
+
+  const editCar = (car) => {
+    setForm({
+      id: car.id,
+      plate: car.plate,
+      brand: car.brand,
+      color: car.color,
+      amount: car.amount,
+      date: car.date,
+      entryUser: car.entryUser,
+    });
+  };
+
+  const printRegisteredCar = (car) => {
+    setCarTicket({ ...car, entryUser: car.entryUser || currentUser?.username || "" });
+    window.setTimeout(printCarTicket, 0);
+  };
+
   return (
     <div className="split">
       <section className="panel">
-        <div className="panel-head"><h3>Ingreso de auto</h3></div>
-        <form className="form" onSubmit={(e) => { e.preventDefault(); saveCar(form); setForm({ plate: "", brand: "", color: "", amount: 1000 }); }}>
+        <div className="panel-head">
+          <h3>{form.id ? "Editar auto" : "Ingreso de auto"}</h3>
+          {form.id && <button className="ghost" onClick={resetForm}>Nuevo ingreso</button>}
+        </div>
+        <form className="form" onSubmit={(e) => { e.preventDefault(); saveCar(form); resetForm(); }}>
           <label>Patente <input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} required /></label>
           <div className="grid-2">
             <label>Marca <input list="carBrands" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required /></label>
@@ -458,7 +613,7 @@ function Playa({ state, saveCar, deleteCars, carTicket }) {
           <datalist id="carBrands">{carBrands.map((x) => <option key={x} value={x} />)}</datalist>
           <datalist id="carColors">{carColors.map((x) => <option key={x} value={x} />)}</datalist>
           <label>Tarifa <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required /></label>
-          <button className="primary">Registrar y cobrar</button>
+          <button className="primary">{form.id ? "Guardar cambios" : "Registrar y cobrar"}</button>
         </form>
         <RegisteredList
           title="Cobros registrados"
@@ -466,15 +621,17 @@ function Playa({ state, saveCar, deleteCars, carTicket }) {
           selected={selected}
           setSelected={setSelected}
           renderMain={(c) => c.plate}
-          renderDetail={(c) => `${c.brand} | ${c.color} | ${formatDate(c.date)}`}
+          renderDetail={(c) => `${c.brand} | ${c.color} | ${c.entryUser || "Sin entrada"} | ${formatDate(c.date)}`}
           onDelete={(ids) => deleteCars(ids)}
+          onEdit={editCar}
+          onPrint={printRegisteredCar}
         />
       </section>
       <section className="panel">
         <div className="car-ticket">
-          <div className="panel-head"><h3>Comprobante de playa</h3><button className="ghost" disabled={!carTicket} onClick={() => window.print()}>Imprimir</button></div>
-          <div className="ticket-copy">
-            {carTicket ? <CarTicket car={carTicket} /> : <p>Registre un auto para generar el comprobante.</p>}
+          <div className="panel-head"><h3>Comprobante de playa</h3><button className="ghost" disabled={!carTicket} onClick={printCarTicket}>Imprimir</button></div>
+          <div className="ticket-copy car-ticket-copy">
+            {carTicket ? <CarTicket car={{ ...carTicket, entryUser: carTicket.entryUser || currentUser?.username || "" }} /> : <p>Registre un auto para generar el comprobante.</p>}
           </div>
         </div>
       </section>
@@ -491,6 +648,12 @@ function Estadisticas({ state }) {
   const expenses = state.expenses.filter((e) => isBetweenDates(e.date, range.start, range.end));
   const income = sumAmounts(payments) + sumAmounts(cars);
   const balance = income - sumAmounts(expenses);
+  const entryStats = ["ENTRADA 1", "ENTRADA 2", "ENTRADA 3", "ENTRADA 4"].map((entry) => ({
+    entry,
+    count: cars.filter((car) => car.entryUser === entry).length,
+  }));
+  const unassignedCars = cars.filter((car) => !car.entryUser || !entryStats.some((item) => item.entry === car.entryUser)).length;
+  const maxEntryCount = Math.max(1, ...entryStats.map((item) => item.count), unassignedCars);
 
   return (
     <>
@@ -528,11 +691,19 @@ function Estadisticas({ state }) {
           ]} />
         </section>
       </div>
+      <section className="panel stats-lower">
+        <div className="panel-head"><h3>Autos por entrada</h3><strong>{cars.length} total</strong></div>
+        <span className="period-label">{range.label}</span>
+        <StatRows items={[
+          ...entryStats.map((item) => [item.entry, item.count, maxEntryCount]),
+          ...(unassignedCars ? [["Sin entrada", unassignedCars, maxEntryCount]] : []),
+        ]} />
+      </section>
     </>
   );
 }
 
-function RegisteredList({ title, items, selected, setSelected, renderMain, renderDetail, onDelete }) {
+function RegisteredList({ title, items, selected, setSelected, renderMain, renderDetail, onDelete, onEdit, onPrint }) {
   const toggle = (id) => setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
   return (
     <div className="subsection">
@@ -543,7 +714,11 @@ function RegisteredList({ title, items, selected, setSelected, renderMain, rende
             <input className="payment-check" type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} />
             <div className="activity-main"><strong>{renderMain(item)}</strong><br /><small>{renderDetail(item)}</small></div>
             <strong>{pesos.format(item.amount)}</strong>
-            <div className="item-actions"><button className="ghost danger-action" onClick={() => onDelete([item.id])}>Borrar</button></div>
+            <div className="item-actions">
+              {onEdit && <button className="ghost" onClick={() => onEdit(item)}>Editar</button>}
+              {onPrint && <button className="ghost" onClick={() => onPrint(item)}>Imprimir</button>}
+              <button className="ghost danger-action" onClick={() => onDelete([item.id])}>Borrar</button>
+            </div>
           </div>
         )) : <p className="empty">Todavia no hay registros.</p>}
       </div>
@@ -597,6 +772,7 @@ function TicketCopy({ title, payment }) {
     <div className="ticket-copy">
       <h3>Feria Nicolas Serpa</h3>
       <p>{title}</p>
+      <p className="ticket-disclaimer">Comprobante no valido como factura.</p>
       {[
         ["Ticket", payment.id.slice(0, 8).toUpperCase()],
         ["Fecha", formatDate(payment.date)],
@@ -615,13 +791,18 @@ function CarTicket({ car }) {
     <>
       <h3>Feria Nicolas Serpa</h3>
       <p>Comprobante de playa</p>
+      <p className="ticket-disclaimer">Comprobante no valido como factura.</p>
       {[
         ["Fecha y hora", formatDate(car.date)],
         ["Patente", car.plate],
         ["Marca", car.brand],
         ["Color", car.color],
+        ["Entrada", car.entryUser || "-"],
         ["Importe", pesos.format(car.amount)],
       ].map(([label, value]) => <div className="ticket-line" key={label}><span>{label}</span><strong>{value}</strong></div>)}
+      <p className="ticket-warning">
+        Por favor, controle que el numero de patente ingresado sea correcto y este legible, sin correcciones. De lo contrario, el seguro de esta playa no tendra validez.
+      </p>
     </>
   );
 }
@@ -648,6 +829,24 @@ function Badge({ tone, children }) {
 
 function StatRows({ items }) {
   return <div className="stat-list">{items.map(([label, value, total]) => <article className="stat-row" key={label}><div className="stat-row-top"><strong>{label}</strong><span>{value} de {total}</span></div><div className="stat-bar"><span style={{ width: `${percent(value, total)}%` }} /></div></article>)}</div>;
+}
+
+function loadSessionUser() {
+  try {
+    const stored = localStorage.getItem(sessionKey);
+    if (!stored) return null;
+    const sessionUser = JSON.parse(stored);
+    const user = users.find((item) => item.username === sessionUser.username);
+    if (!user) return null;
+    return {
+      username: user.username,
+      role: user.role,
+      allowedViews: user.allowedViews,
+    };
+  } catch {
+    localStorage.removeItem(sessionKey);
+    return null;
+  }
 }
 
 function sameMonth(date) {

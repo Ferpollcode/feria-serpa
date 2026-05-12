@@ -173,6 +173,74 @@ button,
   outline-offset: 2px;
 }
 
+.sidebar-user {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.sidebar-user span {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.logout-button {
+  background: rgba(23, 32, 42, 0.18);
+}
+
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: linear-gradient(180deg, #fff9f1 0%, var(--paper) 48%, #eef3f7 100%);
+  font-family: var(--font-ui);
+}
+
+.login-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(23, 32, 42, 0.12);
+}
+
+.login-logo {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  justify-self: center;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.login-card h1 {
+  margin: 4px 0 0;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.login-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--danger);
+  background: #fff1f0;
+  border: 1px solid #ffd5d2;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .shell {
   padding: 16px 18px;
   overflow: hidden;
@@ -876,6 +944,25 @@ td:nth-child(8) {
   margin: 4px 0 12px;
 }
 
+.ticket-disclaimer {
+  color: var(--ink) !important;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ticket-warning {
+  margin: 12px 0 0 !important;
+  padding-top: 10px;
+  border-top: 1px dashed #98a2b3;
+  color: var(--ink) !important;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .car-ticket {
   margin-top: 18px;
   display: grid;
@@ -1497,8 +1584,192 @@ dialog[open].modal {
 }
 
 @media print {
+  @page car-ticket {
+    size: 58mm auto;
+    margin: 0;
+  }
+
   .app-shell {
     display: block;
     background: white;
+  }
+
+  body.printing-car-ticket {
+    width: 58mm;
+    margin: 0;
+    background: white;
+  }
+
+  body.printing-car-ticket .sidebar,
+  body.printing-car-ticket .topbar,
+  body.printing-car-ticket .split > .panel:first-child,
+  body.printing-car-ticket .car-ticket .panel-head,
+  body.printing-car-ticket .car-ticket-copy p:only-child {
+    display: none !important;
+  }
+
+  body.printing-car-ticket .app-shell,
+  body.printing-car-ticket .shell,
+  body.printing-car-ticket .split,
+  body.printing-car-ticket .panel,
+  body.printing-car-ticket .car-ticket {
+    display: block !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  body.printing-car-ticket .car-ticket-copy {
+    page: car-ticket;
+    width: 58mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 3mm 3mm 4mm !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+  }
+
+  body.printing-car-ticket .car-ticket-copy h3 {
+    margin: 0 0 1.5mm !important;
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+    text-align: center;
+  }
+
+  body.printing-car-ticket .car-ticket-copy p {
+    margin: 0 0 2mm !important;
+    color: #000 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    text-align: center;
+  }
+
+  body.printing-car-ticket .ticket-warning {
+    margin: 3mm 0 0 !important;
+    padding-top: 2mm !important;
+    border-top: 1px dashed #999;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+  }
+
+  body.printing-car-ticket .ticket-disclaimer {
+    margin: 0 0 2mm !important;
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+  }
+
+  body.printing-car-ticket .ticket-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    padding: 1.2mm 0 !important;
+    border-bottom: 1px dashed #999;
+    color: #000 !important;
+    font-size: 9.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  body.printing-car-ticket .ticket-line span {
+    color: #000 !important;
+  }
+
+  body.printing-car-ticket .ticket-line strong {
+    color: #000 !important;
+    text-align: right;
+  }
+
+  body.printing-payment-ticket {
+    width: 58mm;
+    margin: 0;
+    background: white;
+  }
+
+  body.printing-payment-ticket .sidebar,
+  body.printing-payment-ticket .topbar,
+  body.printing-payment-ticket .payment-layout > .panel:first-child,
+  body.printing-payment-ticket .ticket-actions {
+    display: none !important;
+  }
+
+  body.printing-payment-ticket .app-shell,
+  body.printing-payment-ticket .shell,
+  body.printing-payment-ticket .payment-layout,
+  body.printing-payment-ticket .ticket {
+    display: block !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  body.printing-payment-ticket .ticket-copy {
+    page: car-ticket;
+    width: 58mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 3mm 3mm 4mm !important;
+    border: 0 !important;
+    border-bottom: 1px dashed #999 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+  }
+
+  body.printing-payment-ticket .ticket-copy h3 {
+    margin: 0 0 1.5mm !important;
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+    text-align: center;
+  }
+
+  body.printing-payment-ticket .ticket-copy p {
+    margin: 0 0 2mm !important;
+    color: #000 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    text-align: center;
+  }
+
+  body.printing-payment-ticket .ticket-disclaimer {
+    margin: 0 0 2mm !important;
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+  }
+
+  body.printing-payment-ticket .ticket-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    padding: 1.2mm 0 !important;
+    border-bottom: 1px dashed #999;
+    color: #000 !important;
+    font-size: 9.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  body.printing-payment-ticket .ticket-line span {
+    color: #000 !important;
+  }
+
+  body.printing-payment-ticket .ticket-line strong {
+    color: #000 !important;
+    text-align: right;
   }
 }
