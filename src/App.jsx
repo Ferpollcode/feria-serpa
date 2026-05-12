@@ -34,6 +34,336 @@ const titles = {
 
 const sessionKey = "feria-serpa-current-user";
 
+const receiptPrintStyles = `
+  @page {
+    size: 58mm 68mm;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 58mm;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+  }
+
+  .ticket-copy {
+    width: 58mm;
+    margin: 0;
+    padding: 2mm 3mm 2mm;
+    border: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  h3 {
+    margin: 0 0 1mm;
+    font-size: 13px;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  p {
+    margin: 0 0 1.5mm;
+    color: #000;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .ticket-disclaimer {
+    margin: 0 0 1.5mm;
+    font-size: 8.5px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .ticket-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    padding: 0.9mm 0;
+    border-bottom: 1px dashed #999;
+    color: #000;
+    font-size: 9.5px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .ticket-line span,
+  .ticket-line strong {
+    min-width: 0;
+    color: #000;
+  }
+
+  .ticket-line strong {
+    text-align: right;
+  }
+
+  .ticket-warning {
+    margin: 2mm 0 0;
+    padding-top: 1.5mm;
+    border-top: 1px dashed #999;
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+  }
+`;
+
+function printReceipt(selector) {
+  const ticket = document.querySelector(selector);
+  if (!ticket) return;
+
+  const frame = document.createElement("iframe");
+  frame.title = "Impresion de comprobante";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Comprobante</title>
+        <style>${receiptPrintStyles}</style>
+      </head>
+      <body>${ticket.outerHTML}</body>
+    </html>
+  `);
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
+}
+
+const carReceiptPrintStyles = `
+  @page {
+    size: 100mm 58mm;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100mm;
+    height: 58mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+  }
+
+  .car-receipt {
+    width: 100mm;
+    height: 58mm;
+    display: grid;
+    grid-template-columns: 12mm 1fr;
+    gap: 2mm;
+    padding: 3mm;
+    background: #fff;
+    color: #000;
+    overflow: hidden;
+  }
+
+  .receipt-side {
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #000;
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-transform: uppercase;
+  }
+
+  .receipt-main {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 2mm;
+    min-width: 0;
+  }
+
+  .receipt-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2mm;
+    border-bottom: 1.4px solid #000;
+    padding-bottom: 1mm;
+  }
+
+  .receipt-date {
+    font-size: 24px;
+    line-height: 0.9;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .receipt-entry {
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 800;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .receipt-note {
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-align: right;
+  }
+
+  .receipt-warning {
+    margin: 0;
+    padding: 2mm 3mm;
+    border: 1.5px solid #000;
+    font-size: 11px;
+    line-height: 1.12;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .receipt-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    column-gap: 4mm;
+    row-gap: 1.5mm;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .receipt-field {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: end;
+    gap: 1.5mm;
+    min-width: 0;
+  }
+
+  .receipt-value {
+    min-height: 5mm;
+    border-bottom: 1px dotted #000;
+    font-size: 11px;
+    line-height: 1;
+    text-align: center;
+    text-transform: none;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .receipt-total {
+    text-align: right;
+    font-size: 11px;
+  }
+`;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizeEntryLabel(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/\d+/);
+  if (match) return `Cabina ${match[0]}`;
+  return text || "Cabina";
+}
+
+function printCarReceipt(car) {
+  if (!car) return;
+  const frame = document.createElement("iframe");
+  frame.title = "Impresion de comprobante";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const date = formatDateOnly(car.date).replace(/\//g, ".");
+  const entry = normalizeEntryLabel(car.entryUser);
+  const ticketNumber = car.id ? car.id.slice(0, 6).toUpperCase() : "";
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Comprobante</title>
+        <style>${carReceiptPrintStyles}</style>
+      </head>
+      <body>
+        <section class="car-receipt">
+          <aside class="receipt-side">
+            <span>Estacionamiento</span>
+            <span>Nro. ${escapeHtml(ticketNumber)}</span>
+          </aside>
+          <main class="receipt-main">
+            <header class="receipt-top">
+              <strong class="receipt-date">${escapeHtml(date)}</strong>
+              <div>
+                <div class="receipt-entry">${escapeHtml(entry)}</div>
+                <div class="receipt-note">No valido como factura</div>
+              </div>
+            </header>
+            <p class="receipt-warning">Por favor, controle que el numero de patente ingresado en su ticket sea correcto y este legible, sin correcciones. De lo contrario, el seguro de esta playa no tendra validez.</p>
+            <div class="receipt-details">
+              <div class="receipt-field"><span>Patente:</span><strong class="receipt-value">${escapeHtml(car.plate)}</strong></div>
+              <div class="receipt-field"><span>Marca:</span><strong class="receipt-value">${escapeHtml(car.brand)}</strong></div>
+              <div class="receipt-field"><span>Color:</span><strong class="receipt-value">${escapeHtml(car.color)}</strong></div>
+              <div class="receipt-total">Importe: ${escapeHtml(pesos.format(car.amount))}</div>
+            </div>
+          </main>
+        </section>
+      </body>
+    </html>
+  `);
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
+}
+
 const emptyPuesto = {
   id: "",
   sector: "Calle A",
@@ -209,21 +539,23 @@ export function App() {
           )}
         </header>
 
-        {view === "dashboard" && (
-          <Dashboard
-            state={state}
-            selectedMapSector={selectedMapSector}
-            setSelectedMapSector={setSelectedMapSector}
-            editPuesto={setEditingPuesto}
-          />
-        )}
-        {view === "puestos" && <Puestos state={state} editPuesto={setEditingPuesto} goCollect={(puesto) => setView("cobranza")} />}
-        {view === "cobranza" && (
-          <Cobranza state={state} collectPayment={collectPayment} deletePayments={deletePayments} lastPayment={lastPayment} setLastPayment={setLastPayment} />
-        )}
-        {view === "gastos" && <Gastos state={state} saveExpense={saveExpense} />}
-        {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} setCarTicket={setCarTicket} currentUser={currentUser} />}
-        {view === "estadisticas" && <Estadisticas state={state} />}
+        <section id={view} className="view active">
+          {view === "dashboard" && (
+            <Dashboard
+              state={state}
+              selectedMapSector={selectedMapSector}
+              setSelectedMapSector={setSelectedMapSector}
+              editPuesto={setEditingPuesto}
+            />
+          )}
+          {view === "puestos" && <Puestos state={state} editPuesto={setEditingPuesto} goCollect={(puesto) => setView("cobranza")} />}
+          {view === "cobranza" && (
+            <Cobranza state={state} collectPayment={collectPayment} deletePayments={deletePayments} lastPayment={lastPayment} setLastPayment={setLastPayment} />
+          )}
+          {view === "gastos" && <Gastos state={state} saveExpense={saveExpense} />}
+          {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} setCarTicket={setCarTicket} currentUser={currentUser} />}
+          {view === "estadisticas" && <Estadisticas state={state} />}
+        </section>
       </main>
 
       {editingPuesto && <PuestoModal puesto={editingPuesto} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
@@ -569,11 +901,8 @@ function Playa({ state, saveCar, deleteCars, carTicket, setCarTicket, currentUse
   const today = state.cars.filter((c) => isToday(c.date));
 
   const printCarTicket = () => {
-    document.body.classList.add("printing-car-ticket");
-    const cleanup = () => document.body.classList.remove("printing-car-ticket");
-    window.addEventListener("afterprint", cleanup, { once: true });
-    window.print();
-    window.setTimeout(cleanup, 1000);
+    if (!carTicket) return;
+    printCarReceipt({ ...carTicket, entryUser: carTicket.entryUser || currentUser?.username || "" });
   };
 
   const resetForm = () => {

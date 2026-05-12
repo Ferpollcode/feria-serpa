@@ -1585,7 +1585,7 @@ dialog[open].modal {
 
 @media print {
   @page car-ticket {
-    size: 58mm auto;
+    size: 58mm 68mm;
     margin: 0;
   }
 
@@ -1598,6 +1598,15 @@ dialog[open].modal {
     width: 58mm;
     margin: 0;
     background: white;
+  }
+
+  body.printing-car-ticket .view {
+    display: none !important;
+  }
+
+  body.printing-car-ticket #playa,
+  body.printing-car-ticket #playa.view {
+    display: block !important;
   }
 
   body.printing-car-ticket .sidebar,
@@ -1629,7 +1638,7 @@ dialog[open].modal {
     width: 58mm !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 3mm 3mm 4mm !important;
+    padding: 2mm 3mm 2mm !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: white !important;
@@ -1638,14 +1647,14 @@ dialog[open].modal {
   }
 
   body.printing-car-ticket .car-ticket-copy h3 {
-    margin: 0 0 1.5mm !important;
+    margin: 0 0 1mm !important;
     font-size: 13px !important;
     line-height: 1.15 !important;
     text-align: center;
   }
 
   body.printing-car-ticket .car-ticket-copy p {
-    margin: 0 0 2mm !important;
+    margin: 0 0 1.5mm !important;
     color: #000 !important;
     font-size: 10px !important;
     line-height: 1.2 !important;
@@ -1653,8 +1662,8 @@ dialog[open].modal {
   }
 
   body.printing-car-ticket .ticket-warning {
-    margin: 3mm 0 0 !important;
-    padding-top: 2mm !important;
+    margin: 2mm 0 0 !important;
+    padding-top: 1.5mm !important;
     border-top: 1px dashed #999;
     font-size: 9px !important;
     font-weight: 700 !important;
@@ -1663,7 +1672,7 @@ dialog[open].modal {
   }
 
   body.printing-car-ticket .ticket-disclaimer {
-    margin: 0 0 2mm !important;
+    margin: 0 0 1.5mm !important;
     font-size: 8.5px !important;
     line-height: 1.2 !important;
     text-align: center !important;
@@ -1673,7 +1682,7 @@ dialog[open].modal {
     display: flex;
     justify-content: space-between;
     gap: 2mm;
-    padding: 1.2mm 0 !important;
+    padding: 0.9mm 0 !important;
     border-bottom: 1px dashed #999;
     color: #000 !important;
     font-size: 9.5px !important;
