@@ -202,13 +202,20 @@ export function normalizePhone(phone) {
 }
 
 export function makePaymentWhatsappMessage(payment) {
-  return [
+  const lines = [
     "Feria Nicolas Serpa",
     "Comprobante de cobro",
     `Ticket: ${payment.id.slice(0, 8).toUpperCase()}`,
     `Fecha: ${formatDate(payment.date)}`,
     `Puesto: ${payment.sector} ${payment.numero}`,
     `Titular: ${payment.name}`,
+    `Concepto: ${payment.concept}`,
     `Total: ${pesos.format(payment.amount)}`,
-  ].join("\n");
+  ];
+
+  if (payment.sundayDates?.length) {
+    lines.splice(7, 0, `Domingos: ${payment.sundayDates.map((date) => formatDateOnly(date)).join(" | ")}`);
+  }
+
+  return lines.join("\n");
 }

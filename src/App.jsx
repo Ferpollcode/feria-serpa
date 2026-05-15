@@ -582,6 +582,9 @@ export function App() {
       method: form.method,
       amount: Number(form.amount),
       date: form.date || new Date().toISOString(),
+      paymentType: form.paymentType || "simple",
+      sundayDates: form.paymentType === "month-sundays" ? form.sundayDates || [] : [],
+      perSundayAmount: form.paymentType === "month-sundays" ? Number(form.perSundayAmount || 0) : 0,
     };
     updateState((draft) => {
       const draftPuesto = draft.puestos.find((item) => item.id === puesto.id);
@@ -649,8 +652,6 @@ export function App() {
           </div>
           {canManage && (
             <div className="top-actions">
-              <span className="sync-status">{syncStatus}</span>
-              <button className="ghost" onClick={resetDemo}>Recargar demo</button>
               <button className="primary" onClick={() => setEditingPuesto(emptyPuesto)}>Nuevo puesto</button>
             </div>
           )}
@@ -891,16 +892,36 @@ function Puestos({ state, editPuesto }) {
 
 function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastPayment }) {
   const occupied = state.puestos.filter((p) => p.ocupacion === "ocupado").sort(comparePuestos);
-  const [form, setForm] = useState({ puestoId: occupied[0]?.id || "", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+  const monthSundays = getCurrentMonthSundays();
+  const [form, setForm] = useState({ puestoId: occupied[0]?.id || "", paymentType: "simple", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
   const [selected, setSelected] = useState([]);
+  const [ticketMode, setTicketMode] = useState("single");
   const puesto = state.puestos.find((p) => p.id === form.puestoId);
 
   useEffect(() => {
-    if (puesto && !form.id) setForm((current) => ({ ...current, amount: puesto.importe }));
-  }, [form.puestoId]);
+    if (!puesto || form.id) return;
+    setForm((current) => ({
+      ...current,
+      amount: current.paymentType === "month-sundays" ? Number(puesto.importe || 0) * monthSundays.length : puesto.importe,
+      perSundayAmount: current.paymentType === "month-sundays" ? Number(puesto.importe || 0) : 0,
+    }));
+  }, [form.puestoId, form.paymentType]);
 
   const resetForm = () => {
-    setForm({ puestoId: occupied[0]?.id || "", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+    setForm({ puestoId: occupied[0]?.id || "", paymentType: "simple", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+  };
+
+  const changePaymentType = (paymentType) => {
+    const sundayDates = monthSundays.map((date) => date.toISOString());
+    const perSundayAmount = Number(puesto?.importe || 0);
+    setForm({
+      ...form,
+      paymentType,
+      concept: paymentType === "month-sundays" ? `Domingos de ${formatMonthYear(new Date())}` : "Canon mensual",
+      amount: paymentType === "month-sundays" ? perSundayAmount * sundayDates.length : perSundayAmount,
+      sundayDates: paymentType === "month-sundays" ? sundayDates : [],
+      perSundayAmount: paymentType === "month-sundays" ? perSundayAmount : 0,
+    });
   };
 
   const editPayment = (payment) => {
@@ -911,6 +932,9 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
       method: payment.method,
       amount: payment.amount,
       date: payment.date,
+      paymentType: payment.paymentType || "simple",
+      sundayDates: payment.sundayDates || [],
+      perSundayAmount: payment.perSundayAmount || 0,
     });
   };
 
@@ -920,11 +944,27 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
   };
 
   const printPaymentTicket = () => {
+    setTicketMode("single");
     document.body.classList.add("printing-payment-ticket");
     const cleanup = () => document.body.classList.remove("printing-payment-ticket");
     window.addEventListener("afterprint", cleanup, { once: true });
     window.print();
     window.setTimeout(cleanup, 1000);
+  };
+
+  const printSundayTickets = () => {
+    if (!lastPayment?.sundayDates?.length) return;
+    setTicketMode("split");
+    window.setTimeout(() => {
+      document.body.classList.add("printing-payment-ticket");
+      const cleanup = () => {
+        document.body.classList.remove("printing-payment-ticket");
+        setTicketMode("single");
+      };
+      window.addEventListener("afterprint", cleanup, { once: true });
+      window.print();
+      window.setTimeout(cleanup, 1000);
+    }, 0);
   };
 
   const sendWhatsapp = async () => {
@@ -950,9 +990,22 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
               {occupied.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
             </select>
           </label>
+          <label>Tipo de cobro
+            <select value={form.paymentType || "simple"} onChange={(e) => changePaymentType(e.target.value)}>
+              <option value="simple">Cobro simple</option>
+              <option value="month-sundays">Todos los domingos del mes vigente</option>
+            </select>
+          </label>
+          {form.paymentType === "month-sundays" && (
+            <div className="month-sundays-box">
+              <strong>{monthSundays.length} domingos incluidos</strong>
+              <span>{monthSundays.map((date) => formatDateOnly(date)).join(" | ")}</span>
+              <small>Calculado como {pesos.format(Number(puesto?.importe || 0))} x {monthSundays.length}. El importe final se puede editar antes de cobrar.</small>
+            </div>
+          )}
           <label>Concepto
             <select value={form.concept} onChange={(e) => setForm({ ...form, concept: e.target.value })}>
-              <option>Canon mensual</option><option>Fin de semana</option><option>Reserva</option><option>Deuda anterior</option>
+              <option>Canon mensual</option><option>Fin de semana</option><option>Domingos del mes</option><option>Reserva</option><option>Deuda anterior</option>
             </select>
           </label>
           <label>Importe <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
@@ -976,9 +1029,10 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
         />
       </section>
       <section className="ticket panel">
-        <Ticket payment={lastPayment} />
+        <Ticket payment={lastPayment} mode={ticketMode} />
         <div className="ticket-actions print-hide">
           <button className="ghost" onClick={printPaymentTicket}>Imprimir ticket</button>
+          {lastPayment?.sundayDates?.length > 1 && <button className="ghost" onClick={printSundayTickets}>Tickets por domingo</button>}
           <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>WhatsApp</button>
         </div>
       </section>
@@ -1289,8 +1343,35 @@ function PuestoModal({ puesto, onClose, onSave }) {
   );
 }
 
-function Ticket({ payment }) {
-  if (!payment) return <div className="ticket-copy"><p>Emita un cobro para generar el comprobante.</p></div>;
+function Ticket({ payment, mode = "single" }) {
+  if (!payment) {
+    return (
+      <div className="ticket-empty">
+        <div className="ticket-empty-icon">T</div>
+        <strong>Sin comprobante generado</strong>
+        <span>Cuando registres un cobro, el ticket aparecera listo para imprimir o enviar por WhatsApp.</span>
+      </div>
+    );
+  }
+  if (mode === "split" && payment.sundayDates?.length) {
+    const amount = Number(payment.perSundayAmount || payment.amount / payment.sundayDates.length || 0);
+    return (
+      <div className="split-ticket-pages">
+        {payment.sundayDates.map((date) => (
+          <TicketCopy
+            key={date}
+            title={`Comprobante domingo ${formatDateOnly(date)}`}
+            payment={{
+              ...payment,
+              id: `${payment.id}-${date}`,
+              concept: `Domingo ${formatDateOnly(date)}`,
+              amount,
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
   return (
     <>
       <TicketCopy title="Comprobante para puestero" payment={payment} />
@@ -1300,6 +1381,7 @@ function Ticket({ payment }) {
 }
 
 function TicketCopy({ title, payment }) {
+  const sundayDates = payment.sundayDates || [];
   return (
     <div className="ticket-copy">
       <h3>Feria Nicolas Serpa</h3>
@@ -1314,6 +1396,12 @@ function TicketCopy({ title, payment }) {
         ["Medio", payment.method],
         ["Total", pesos.format(payment.amount)],
       ].map(([label, value]) => <div className="ticket-line" key={label}><span>{label}</span><strong>{value}</strong></div>)}
+      {sundayDates.length > 0 && (
+        <div className="ticket-sundays">
+          <span>Domingos incluidos</span>
+          <strong>{sundayDates.map((date) => formatDateOnly(date)).join(" | ")}</strong>
+        </div>
+      )}
     </div>
   );
 }
@@ -1383,6 +1471,19 @@ function sameMonth(date) {
   const value = new Date(date);
   const now = new Date();
   return value.getMonth() === now.getMonth() && value.getFullYear() === now.getFullYear();
+}
+
+function getCurrentMonthSundays() {
+  const now = new Date();
+  const date = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sundays = [];
+
+  while (date.getMonth() === now.getMonth()) {
+    if (date.getDay() === 0) sundays.push(new Date(date));
+    date.setDate(date.getDate() + 1);
+  }
+
+  return sundays;
 }
 
 function getPeriod(period) {

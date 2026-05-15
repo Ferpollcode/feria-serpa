@@ -1021,22 +1021,62 @@ td:nth-child(8) {
   gap: 12px;
 }
 
+.month-sundays-box {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #cdd8e6;
+  border-radius: 10px;
+  background: #f7fafc;
+}
+
+.month-sundays-box strong {
+  color: var(--primary);
+}
+
+.month-sundays-box span,
+.month-sundays-box small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .ticket {
   display: grid;
-  gap: 14px;
+  align-content: start;
+  gap: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95)),
+    radial-gradient(circle at top right, rgba(242, 106, 33, 0.1), transparent 220px);
 }
 
 .ticket-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.ticket-actions button {
+  min-height: 54px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.ticket-actions .primary {
+  background: #167a64;
+  box-shadow: 0 10px 22px rgba(22, 122, 100, 0.18);
+}
+
+.ticket-actions .primary:hover {
+  background: #10634f;
 }
 
 .ticket-copy {
-  border: 1px dashed #98a2b3;
-  border-radius: 8px;
-  padding: 16px;
+  border: 1px solid #d7dee8;
+  border-radius: 14px;
+  padding: 18px;
   background: #fffefa;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .ticket-copy h3 {
@@ -1046,6 +1086,45 @@ td:nth-child(8) {
 .ticket-copy p {
   color: var(--muted);
   margin: 4px 0 12px;
+}
+
+.ticket-empty {
+  min-height: 310px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  border: 1px dashed #b8c3d1;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcff 100%),
+    repeating-linear-gradient(135deg, rgba(20, 108, 99, 0.04) 0 8px, transparent 8px 16px);
+  padding: 24px;
+  text-align: center;
+}
+
+.ticket-empty-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(20, 108, 99, 0.1);
+  color: var(--primary);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.ticket-empty strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.ticket-empty span {
+  max-width: 330px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .ticket-disclaimer {
@@ -1099,6 +1178,25 @@ td:nth-child(8) {
 .ticket-line strong,
 .ticket-line span {
   min-width: 0;
+}
+
+.ticket-sundays {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #98a2b3;
+}
+
+.ticket-sundays span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ticket-sundays strong {
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .modal {
@@ -1706,6 +1804,11 @@ dialog[open].modal {
     margin: 0;
   }
 
+  @page payment-ticket {
+    size: 68mm 58mm;
+    margin: 0;
+  }
+
   .app-shell {
     display: block;
     background: white;
@@ -1816,7 +1919,7 @@ dialog[open].modal {
   }
 
   body.printing-payment-ticket {
-    width: 58mm;
+    width: 68mm;
     margin: 0;
     background: white;
   }
@@ -1833,8 +1936,8 @@ dialog[open].modal {
   body.printing-payment-ticket .payment-layout,
   body.printing-payment-ticket .ticket {
     display: block !important;
-    width: 58mm !important;
-    max-width: 58mm !important;
+    width: 68mm !important;
+    max-width: 68mm !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -1844,11 +1947,11 @@ dialog[open].modal {
   }
 
   body.printing-payment-ticket .ticket-copy {
-    page: car-ticket;
-    width: 58mm !important;
+    page: payment-ticket;
+    width: 68mm !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 3mm 3mm 4mm !important;
+    padding: 2mm 3mm !important;
     border: 0 !important;
     border-bottom: 1px dashed #999 !important;
     border-radius: 0 !important;
@@ -1857,24 +1960,34 @@ dialog[open].modal {
     page-break-inside: avoid;
   }
 
+  body.printing-payment-ticket .split-ticket-pages .ticket-copy {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.printing-payment-ticket .split-ticket-pages .ticket-copy:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
   body.printing-payment-ticket .ticket-copy h3 {
-    margin: 0 0 1.5mm !important;
-    font-size: 13px !important;
+    margin: 0 0 0.8mm !important;
+    font-size: 12px !important;
     line-height: 1.15 !important;
     text-align: center;
   }
 
   body.printing-payment-ticket .ticket-copy p {
-    margin: 0 0 2mm !important;
+    margin: 0 0 1mm !important;
     color: #000 !important;
-    font-size: 10px !important;
-    line-height: 1.2 !important;
+    font-size: 9px !important;
+    line-height: 1.15 !important;
     text-align: center;
   }
 
   body.printing-payment-ticket .ticket-disclaimer {
-    margin: 0 0 2mm !important;
-    font-size: 8.5px !important;
+    margin: 0 0 1mm !important;
+    font-size: 7.8px !important;
     line-height: 1.2 !important;
     text-align: center !important;
   }
@@ -1883,11 +1996,11 @@ dialog[open].modal {
     display: flex;
     justify-content: space-between;
     gap: 2mm;
-    padding: 1.2mm 0 !important;
+    padding: 0.55mm 0 !important;
     border-bottom: 1px dashed #999;
     color: #000 !important;
-    font-size: 9.5px !important;
-    line-height: 1.2 !important;
+    font-size: 8.8px !important;
+    line-height: 1.1 !important;
   }
 
   body.printing-payment-ticket .ticket-line span {
@@ -1897,5 +2010,18 @@ dialog[open].modal {
   body.printing-payment-ticket .ticket-line strong {
     color: #000 !important;
     text-align: right;
+  }
+
+  body.printing-payment-ticket .ticket-sundays {
+    margin-top: 1mm !important;
+    padding-top: 1mm !important;
+    border-top: 1px dashed #999 !important;
+  }
+
+  body.printing-payment-ticket .ticket-sundays span,
+  body.printing-payment-ticket .ticket-sundays strong {
+    color: #000 !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
   }
 }
