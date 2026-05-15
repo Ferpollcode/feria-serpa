@@ -32,6 +32,7 @@ const titles = {
   gastos: "Gastos",
   playa: "Playa de autos",
   estadisticas: "Estadisticas",
+  usuarios: "Usuarios y permisos",
 };
 
 const sessionKey = "feria-serpa-current-user";
@@ -380,6 +381,13 @@ const emptyPuesto = {
   importe: 28000,
 };
 
+const emptyUser = {
+  username: "",
+  password: "",
+  role: "entrada",
+  allowedViews: ["playa"],
+};
+
 export function App() {
   const [state, setState] = useState(loadState);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -388,9 +396,12 @@ export function App() {
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
   const [carTicket, setCarTicket] = useState(null);
   const appUsers = state.users?.length ? state.users : defaultUsers;
+  const isAdmin = currentUser?.role === "admin";
+  const canManage = isAdmin || currentUser?.role === "maestro";
 
   useEffect(() => {
     let isMounted = true;
@@ -446,6 +457,24 @@ export function App() {
     if (!currentUser.allowedViews.includes(view)) setView(currentUser.allowedViews[0]);
   }, [currentUser, view]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    const savedUser = appUsers.find((user) => user.username === currentUser.username);
+    if (!savedUser) {
+      logout();
+      return;
+    }
+    if (JSON.stringify(savedUser.allowedViews) !== JSON.stringify(currentUser.allowedViews) || savedUser.role !== currentUser.role) {
+      const sessionUser = {
+        username: savedUser.username,
+        role: savedUser.role,
+        allowedViews: savedUser.role === "admin" ? navItems.map(([id]) => id) : savedUser.allowedViews,
+      };
+      localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
+      setCurrentUser(sessionUser);
+    }
+  }, [appUsers, currentUser]);
+
   const login = ({ username, password }) => {
     const normalizedUsername = username.trim().toUpperCase().replace(/\s+/g, " ");
     const user = appUsers.find((item) => item.username === normalizedUsername && item.password === password);
@@ -468,6 +497,41 @@ export function App() {
     setEditingPuesto(null);
     setLastPayment(null);
     setCarTicket(null);
+  };
+
+  const saveUser = (user) => {
+    const username = user.username.trim().toUpperCase().replace(/\s+/g, " ");
+    const role = user.role || "entrada";
+    const allowedViews = role === "admin" ? navItems.map(([id]) => id) : user.allowedViews.filter((viewId) => viewId !== "usuarios");
+
+    if (!username || !user.password.trim()) {
+      window.alert("Usuario y contrasena son obligatorios.");
+      return;
+    }
+
+    updateState((draft) => {
+      const next = {
+        username,
+        password: user.password.trim(),
+        role,
+        allowedViews: allowedViews.length ? allowedViews : ["playa"],
+      };
+      const index = draft.users.findIndex((item) => item.username === username);
+      if (index >= 0) draft.users[index] = next;
+      else draft.users.push(next);
+    });
+    setEditingUser(null);
+  };
+
+  const deleteUser = (username) => {
+    if (username === currentUser?.username) {
+      window.alert("No podes borrar el usuario con el que estas trabajando.");
+      return;
+    }
+    if (!window.confirm(`Borrar usuario ${username}?`)) return;
+    updateState((draft) => {
+      draft.users = draft.users.filter((user) => user.username !== username);
+    });
   };
 
   const updateState = (recipe) => {
@@ -583,7 +647,7 @@ export function App() {
             <p className="eyebrow">Operacion diaria</p>
             <h2>{titles[view]}</h2>
           </div>
-          {currentUser.role === "maestro" && (
+          {canManage && (
             <div className="top-actions">
               <span className="sync-status">{syncStatus}</span>
               <button className="ghost" onClick={resetDemo}>Recargar demo</button>
@@ -608,10 +672,12 @@ export function App() {
           {view === "gastos" && <Gastos state={state} saveExpense={saveExpense} />}
           {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} setCarTicket={setCarTicket} currentUser={currentUser} />}
           {view === "estadisticas" && <Estadisticas state={state} />}
+          {view === "usuarios" && isAdmin && <Usuarios users={appUsers} currentUser={currentUser} editUser={setEditingUser} deleteUser={deleteUser} />}
         </section>
       </main>
 
       {editingPuesto && <PuestoModal puesto={editingPuesto} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
+      {editingUser && <UserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={saveUser} />}
     </div>
   );
 }
@@ -664,7 +730,7 @@ function LoginScreen({ onLogin, syncStatus }) {
 
 function Sidebar({ view, setView, currentUser, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const availableNavItems = navItems.filter(([id]) => currentUser.allowedViews.includes(id));
+  const availableNavItems = currentUser.role === "admin" ? navItems : navItems.filter(([id]) => currentUser.allowedViews.includes(id));
   const activeLabel = availableNavItems.find(([id]) => id === view)?.[1] || "Menu";
 
   const selectView = (id) => {
@@ -1083,6 +1149,89 @@ function Estadisticas({ state }) {
         ]} />
       </section>
     </>
+  );
+}
+
+function Usuarios({ users, currentUser, editUser, deleteUser }) {
+  return (
+    <section className="panel users-panel">
+      <div className="panel-head">
+        <div>
+          <h3>Usuarios del sistema</h3>
+          <p className="muted-text">El admin puede crear usuarios y definir que secciones puede abrir cada uno.</p>
+        </div>
+        <button className="primary" onClick={() => editUser(emptyUser)}>Nuevo usuario</button>
+      </div>
+      <div className="users-list">
+        {users.map((user) => (
+          <article className="user-card" key={user.username}>
+            <div>
+              <strong>{user.username}</strong>
+              <span>{user.role === "admin" ? "Admin" : user.role}</span>
+              <small>{user.role === "admin" ? "Acceso total" : user.allowedViews.map((viewId) => titles[viewId] || viewId).join(" | ")}</small>
+            </div>
+            <div className="item-actions">
+              <button className="ghost" onClick={() => editUser(user)}>Editar</button>
+              <button className="ghost danger-action" disabled={user.username === currentUser.username} onClick={() => deleteUser(user.username)}>Borrar</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function UserModal({ user, onClose, onSave }) {
+  const [form, setForm] = useState({ ...emptyUser, ...user });
+  const isAdminRole = form.role === "admin";
+  const permissionItems = navItems.filter(([id]) => id !== "usuarios");
+
+  const toggleView = (viewId) => {
+    const allowedViews = form.allowedViews.includes(viewId)
+      ? form.allowedViews.filter((id) => id !== viewId)
+      : [...form.allowedViews, viewId];
+    setForm({ ...form, allowedViews });
+  };
+
+  const changeRole = (role) => {
+    setForm({
+      ...form,
+      role,
+      allowedViews: role === "admin" ? navItems.map(([id]) => id) : form.allowedViews.filter((id) => id !== "usuarios"),
+    });
+  };
+
+  return (
+    <dialog className="modal" open>
+      <form className="form modal-card" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
+        <div className="panel-head"><h3>{user.username ? "Editar usuario" : "Nuevo usuario"}</h3><button className="icon" type="button" onClick={onClose}>x</button></div>
+        <label>Usuario <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={Boolean(user.username)} required /></label>
+        <label>Contrasena <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
+        <label>Rol
+          <select value={form.role} onChange={(e) => changeRole(e.target.value)}>
+            <option value="entrada">Entrada</option>
+            <option value="maestro">Operador completo</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <div className="permissions-box">
+          <strong>Permisos</strong>
+          {isAdminRole ? (
+            <p className="muted-text">El admin tiene acceso completo, incluida la gestion de usuarios.</p>
+          ) : (
+            <div className="permissions-grid">
+              {permissionItems.map(([id, label]) => (
+                <label className="check-line" key={id}>
+                  <input type="checkbox" checked={form.allowedViews.includes(id)} onChange={() => toggleView(id)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        <button className="primary">Guardar usuario</button>
+      </form>
+    </dialog>
   );
 }
 

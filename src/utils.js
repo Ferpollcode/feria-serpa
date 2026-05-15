@@ -1,4 +1,4 @@
-import { sectorRanges, sectors, users } from "./data.js";
+import { navItems, sectorRanges, sectors, users } from "./data.js";
 
 export const stateKey = "feria-nicolas-serpa-react-v1";
 export const pesos = new Intl.NumberFormat("es-AR", {
@@ -102,6 +102,7 @@ export function saveState(state) {
 }
 
 export function normalizeState(state) {
+  const normalizedUsers = normalizeUsers(state?.users);
   return {
     users,
     puestos: [],
@@ -109,12 +110,37 @@ export function normalizeState(state) {
     expenses: [],
     cars: [],
     ...state,
-    users: Array.isArray(state?.users) && state.users.length ? state.users : users,
+    users: normalizedUsers,
     puestos: Array.isArray(state?.puestos) ? state.puestos : [],
     payments: Array.isArray(state?.payments) ? state.payments : [],
     expenses: Array.isArray(state?.expenses) ? state.expenses : [],
     cars: Array.isArray(state?.cars) ? state.cars : [],
   };
+}
+
+function normalizeUsers(value) {
+  const appUsers = Array.isArray(value) && value.length ? value : users;
+  const allViews = navItems.map(([id]) => id);
+  let hasAdmin = appUsers.some((user) => user.role === "admin");
+  const requiredUsers = users.filter((user) => user.role === "admin");
+
+  const normalized = appUsers.map((user) => {
+    if (!hasAdmin && user.username === "GUSTAVO") {
+      hasAdmin = true;
+      return { ...user, role: "admin", allowedViews: allViews };
+    }
+    if (user.role === "admin") return { ...user, allowedViews: allViews };
+    return {
+      ...user,
+      allowedViews: Array.isArray(user.allowedViews) && user.allowedViews.length ? user.allowedViews : ["playa"],
+    };
+  });
+
+  requiredUsers.forEach((requiredUser) => {
+    if (!normalized.some((user) => user.username === requiredUser.username)) normalized.push(requiredUser);
+  });
+
+  return normalized;
 }
 
 export function isToday(date) {

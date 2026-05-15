@@ -109,12 +109,14 @@ export const navItems = [
   ["gastos", "Gastos"],
   ["playa", "Playa de autos"],
   ["estadisticas", "Estadisticas"],
+  ["usuarios", "Usuarios"],
 ];
 
 export const users = [
+  { username: "ADMIN", password: "Admin123", role: "admin", allowedViews: navItems.map(([id]) => id) },
   { username: "ENTRADA 1", password: "1234", role: "entrada", allowedViews: ["playa"] },
   { username: "ENTRADA 2", password: "1234", role: "entrada", allowedViews: ["playa"] },
   { username: "ENTRADA 3", password: "1234", role: "entrada", allowedViews: ["playa"] },
   { username: "ENTRADA 4", password: "1234", role: "entrada", allowedViews: ["playa"] },
-  { username: "GUSTAVO", password: "Admin123", role: "maestro", allowedViews: navItems.map(([id]) => id) },
+  { username: "GUSTAVO", password: "Admin123", role: "admin", allowedViews: navItems.map(([id]) => id) },
 ];

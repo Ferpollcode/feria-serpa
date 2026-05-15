@@ -18,7 +18,7 @@ export async function loadRemoteState(localState) {
 
   if (data?.data) {
     const remoteState = normalizeState(data.data);
-    if (!Array.isArray(data.data.users)) await saveRemoteState(remoteState);
+    if (JSON.stringify(remoteState) !== JSON.stringify(data.data)) await saveRemoteState(remoteState);
     return { state: remoteState, source: "supabase" };
   }
 
