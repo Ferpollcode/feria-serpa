@@ -291,6 +291,141 @@ const carReceiptPrintStyles = `
   }
 `;
 
+const paymentReceiptPrintStyles = `
+  @page {
+    size: 100mm 58mm;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100mm;
+    min-height: 58mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+  }
+
+  .payment-receipt {
+    width: 100mm;
+    height: 58mm;
+    display: grid;
+    grid-template-columns: 12mm 1fr;
+    gap: 2mm;
+    padding: 3mm;
+    background: #fff;
+    color: #000;
+    overflow: hidden;
+    page-break-after: always;
+  }
+
+  .payment-receipt:last-child {
+    page-break-after: auto;
+  }
+
+  .receipt-side {
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #000;
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-transform: uppercase;
+  }
+
+  .receipt-main {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 2mm;
+    min-width: 0;
+  }
+
+  .receipt-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2mm;
+    border-bottom: 1.4px solid #000;
+    padding-bottom: 1mm;
+  }
+
+  .receipt-title {
+    font-size: 19px;
+    line-height: 0.95;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .receipt-copy {
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 800;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .receipt-note {
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-align: right;
+  }
+
+  .receipt-warning {
+    margin: 0;
+    padding: 1.6mm 2mm;
+    border: 1.5px solid #000;
+    font-size: 10px;
+    line-height: 1.1;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .receipt-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    column-gap: 4mm;
+    row-gap: 1.2mm;
+    font-size: 9.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .receipt-field {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: end;
+    gap: 1.5mm;
+    min-width: 0;
+  }
+
+  .receipt-value {
+    min-height: 4.5mm;
+    border-bottom: 1px dotted #000;
+    font-size: 10px;
+    line-height: 1;
+    text-align: center;
+    text-transform: none;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .receipt-total {
+    text-align: right;
+    font-size: 11px;
+  }
+`;
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -298,6 +433,86 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function printPaymentReceipt(payment, mode = "single") {
+  if (!payment) return;
+  const frame = document.createElement("iframe");
+  frame.title = "Impresion de comprobante";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const copies = mode === "split" && payment.sundayDates?.length
+    ? payment.sundayDates.map((date) => ({
+        title: `Domingo ${formatDateOnly(date)}`,
+        copy: "Puestero",
+        payment: {
+          ...payment,
+          id: `${payment.id}-${date}`,
+          concept: `Domingo ${formatDateOnly(date)}`,
+          amount: Number(payment.perSundayAmount || payment.amount / payment.sundayDates.length || 0),
+        },
+      }))
+    : [
+        { title: payment.concept, copy: "Puestero", payment },
+        { title: payment.concept, copy: "Administracion", payment },
+      ];
+
+  const html = copies.map(({ title, copy, payment: item }) => {
+    const ticketNumber = item.id ? item.id.slice(0, 8).toUpperCase() : "";
+    const sundayText = item.sundayDates?.length ? item.sundayDates.map((date) => formatDateOnly(date)).join(" | ") : "";
+    return `
+      <section class="payment-receipt">
+        <aside class="receipt-side">
+          <span>Cobranza</span>
+          <span>Nro. ${escapeHtml(ticketNumber)}</span>
+        </aside>
+        <main class="receipt-main">
+          <header class="receipt-top">
+            <strong class="receipt-title">${escapeHtml(title)}</strong>
+            <div>
+              <div class="receipt-copy">${escapeHtml(copy)}</div>
+              <div class="receipt-note">No valido como factura</div>
+            </div>
+          </header>
+          <p class="receipt-warning">${escapeHtml(sundayText || "Comprobante de cobro emitido por Feria Nicolas Serpa.")}</p>
+          <div class="receipt-details">
+            <div class="receipt-field"><span>Fecha:</span><strong class="receipt-value">${escapeHtml(formatDate(item.date))}</strong></div>
+            <div class="receipt-field"><span>Puesto:</span><strong class="receipt-value">${escapeHtml(`${item.sector} ${item.numero}`)}</strong></div>
+            <div class="receipt-field"><span>Titular:</span><strong class="receipt-value">${escapeHtml(item.name)}</strong></div>
+            <div class="receipt-field"><span>Medio:</span><strong class="receipt-value">${escapeHtml(item.method)}</strong></div>
+            <div class="receipt-total">Total: ${escapeHtml(pesos.format(item.amount))}</div>
+          </div>
+        </main>
+      </section>
+    `;
+  }).join("");
+
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Comprobante</title>
+        <style>${paymentReceiptPrintStyles}</style>
+      </head>
+      <body>${html}</body>
+    </html>
+  `);
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
 }
 
 function normalizeEntryLabel(value) {
@@ -940,31 +1155,18 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
 
   const printPayment = (payment) => {
     setLastPayment(payment);
-    window.setTimeout(printPaymentTicket, 0);
+    window.setTimeout(() => printPaymentReceipt(payment, "single"), 0);
   };
 
   const printPaymentTicket = () => {
     setTicketMode("single");
-    document.body.classList.add("printing-payment-ticket");
-    const cleanup = () => document.body.classList.remove("printing-payment-ticket");
-    window.addEventListener("afterprint", cleanup, { once: true });
-    window.print();
-    window.setTimeout(cleanup, 1000);
+    printPaymentReceipt(lastPayment, "single");
   };
 
   const printSundayTickets = () => {
     if (!lastPayment?.sundayDates?.length) return;
     setTicketMode("split");
-    window.setTimeout(() => {
-      document.body.classList.add("printing-payment-ticket");
-      const cleanup = () => {
-        document.body.classList.remove("printing-payment-ticket");
-        setTicketMode("single");
-      };
-      window.addEventListener("afterprint", cleanup, { once: true });
-      window.print();
-      window.setTimeout(cleanup, 1000);
-    }, 0);
+    window.setTimeout(() => printPaymentReceipt(lastPayment, "split"), 0);
   };
 
   const sendWhatsapp = async () => {
@@ -1384,24 +1586,30 @@ function TicketCopy({ title, payment }) {
   const sundayDates = payment.sundayDates || [];
   return (
     <div className="ticket-copy">
-      <h3>Feria Nicolas Serpa</h3>
-      <p>{title}</p>
-      <p className="ticket-disclaimer">Comprobante no valido como factura.</p>
-      {[
-        ["Ticket", payment.id.slice(0, 8).toUpperCase()],
-        ["Fecha", formatDate(payment.date)],
-        ["Puesto", `${payment.sector} ${payment.numero}`],
-        ["Titular", payment.name],
-        ["Concepto", payment.concept],
-        ["Medio", payment.method],
-        ["Total", pesos.format(payment.amount)],
-      ].map(([label, value]) => <div className="ticket-line" key={label}><span>{label}</span><strong>{value}</strong></div>)}
-      {sundayDates.length > 0 && (
-        <div className="ticket-sundays">
-          <span>Domingos incluidos</span>
-          <strong>{sundayDates.map((date) => formatDateOnly(date)).join(" | ")}</strong>
+      <div className="ticket-copy-head">
+        <h3>Feria Nicolas Serpa</h3>
+        <p>{title}</p>
+        <p className="ticket-disclaimer">Comprobante no valido como factura.</p>
+      </div>
+      <div className="ticket-copy-body">
+        <div className="ticket-lines">
+          {[
+            ["Ticket", payment.id.slice(0, 8).toUpperCase()],
+            ["Fecha", formatDate(payment.date)],
+            ["Puesto", `${payment.sector} ${payment.numero}`],
+            ["Titular", payment.name],
+            ["Concepto", payment.concept],
+            ["Medio", payment.method],
+            ["Total", pesos.format(payment.amount)],
+          ].map(([label, value]) => <div className="ticket-line" key={label}><span>{label}</span><strong>{value}</strong></div>)}
         </div>
-      )}
+        {sundayDates.length > 0 && (
+          <div className="ticket-sundays">
+            <span>Domingos incluidos</span>
+            <strong>{sundayDates.map((date) => formatDateOnly(date)).join(" | ")}</strong>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

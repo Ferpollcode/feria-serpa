@@ -1088,6 +1088,15 @@ td:nth-child(8) {
   margin: 4px 0 12px;
 }
 
+.ticket-copy-head {
+  text-align: center;
+}
+
+.ticket-copy-body {
+  display: grid;
+  gap: 8px;
+}
+
 .ticket-empty {
   min-height: 310px;
   display: grid;
@@ -1805,7 +1814,7 @@ dialog[open].modal {
   }
 
   @page payment-ticket {
-    size: 68mm 58mm;
+    size: 58mm 210mm;
     margin: 0;
   }
 
@@ -1919,7 +1928,7 @@ dialog[open].modal {
   }
 
   body.printing-payment-ticket {
-    width: 68mm;
+    width: 58mm;
     margin: 0;
     background: white;
   }
@@ -1936,8 +1945,8 @@ dialog[open].modal {
   body.printing-payment-ticket .payment-layout,
   body.printing-payment-ticket .ticket {
     display: block !important;
-    width: 68mm !important;
-    max-width: 68mm !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -1948,26 +1957,36 @@ dialog[open].modal {
 
   body.printing-payment-ticket .ticket-copy {
     page: payment-ticket;
-    width: 68mm !important;
+    width: 58mm !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 2mm 3mm !important;
+    padding: 2mm 3mm 2.5mm !important;
     border: 0 !important;
     border-bottom: 1px dashed #999 !important;
     border-radius: 0 !important;
     background: white !important;
     color: #000 !important;
     page-break-inside: avoid;
-  }
-
-  body.printing-payment-ticket .split-ticket-pages .ticket-copy {
     break-after: page;
     page-break-after: always;
   }
 
+  body.printing-payment-ticket .ticket-copy:last-child,
   body.printing-payment-ticket .split-ticket-pages .ticket-copy:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+
+  body.printing-payment-ticket .ticket-copy-body {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 1mm !important;
+  }
+
+  body.printing-payment-ticket .ticket-lines {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2mm !important;
   }
 
   body.printing-payment-ticket .ticket-copy h3 {
@@ -1993,13 +2012,14 @@ dialog[open].modal {
   }
 
   body.printing-payment-ticket .ticket-line {
-    display: flex;
-    justify-content: space-between;
-    gap: 2mm;
-    padding: 0.55mm 0 !important;
+    display: grid;
+    grid-template-columns: 10mm 1fr;
+    align-items: start;
+    gap: 1mm;
+    padding: 0.45mm 0 !important;
     border-bottom: 1px dashed #999;
     color: #000 !important;
-    font-size: 8.8px !important;
+    font-size: 7.6px !important;
     line-height: 1.1 !important;
   }
 
@@ -2009,19 +2029,25 @@ dialog[open].modal {
 
   body.printing-payment-ticket .ticket-line strong {
     color: #000 !important;
-    text-align: right;
+    text-align: left;
+    overflow-wrap: anywhere;
   }
 
   body.printing-payment-ticket .ticket-sundays {
-    margin-top: 1mm !important;
-    padding-top: 1mm !important;
+    margin-top: 0.8mm !important;
+    padding-top: 0.8mm !important;
     border-top: 1px dashed #999 !important;
   }
 
   body.printing-payment-ticket .ticket-sundays span,
   body.printing-payment-ticket .ticket-sundays strong {
     color: #000 !important;
-    font-size: 8px !important;
-    line-height: 1.15 !important;
+    font-size: 7px !important;
+    line-height: 1.12 !important;
+  }
+
+  body.printing-payment-ticket .ticket-sundays strong {
+    display: block;
+    overflow-wrap: anywhere;
   }
 }
