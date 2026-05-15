@@ -230,6 +230,13 @@ button,
   line-height: 1.1;
 }
 
+.login-sync {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .login-error {
   margin: 0;
   padding: 10px 12px;
@@ -302,6 +309,20 @@ button,
   color: var(--ink);
   background: white;
   border-color: var(--line);
+}
+
+.sync-status {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--muted);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .icon {
@@ -1254,6 +1275,11 @@ td:nth-child(8) {
   .top-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .sync-status {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
 
   .metrics {

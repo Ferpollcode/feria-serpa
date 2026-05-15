@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { carBrands, carColors, navItems, rubros, sectors, users } from "./data.js";
+import { carBrands, carColors, navItems, rubros, sectors, users as defaultUsers } from "./data.js";
+import { loadRemoteState, saveRemoteState, subscribeToRemoteState } from "./remoteState.js";
+import { isSupabaseConfigured } from "./supabaseClient.js";
 import {
   comparePuestos,
   createDemoState,
@@ -380,14 +382,64 @@ const emptyPuesto = {
 
 export function App() {
   const [state, setState] = useState(loadState);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? "Conectando con Supabase..." : "Modo local");
   const [currentUser, setCurrentUser] = useState(() => loadSessionUser());
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
   const [carTicket, setCarTicket] = useState(null);
+  const appUsers = state.users?.length ? state.users : defaultUsers;
 
-  useEffect(() => saveState(state), [state]);
+  useEffect(() => {
+    let isMounted = true;
+
+    loadRemoteState(loadState())
+      .then(({ state: remoteState, source }) => {
+        if (!isMounted) return;
+        setState(remoteState);
+        saveState(remoteState);
+        setSyncStatus(source === "supabase" ? "Datos cargados desde Supabase" : "Datos locales listos");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSyncStatus("Supabase no disponible, usando datos locales");
+      })
+      .finally(() => {
+        if (isMounted) setIsHydrated(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    saveState(state);
+
+    const timeout = window.setTimeout(() => {
+      saveRemoteState(state)
+        .then(() => setSyncStatus(isSupabaseConfigured ? "Guardado en Supabase" : "Guardado local"))
+        .catch(() => setSyncStatus("No se pudo guardar en Supabase, queda respaldo local"));
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [isHydrated, state]);
+
+  useEffect(() => {
+    if (!isHydrated) return undefined;
+
+    return subscribeToRemoteState((remoteState) => {
+      setState((current) => {
+        if (JSON.stringify(current) === JSON.stringify(remoteState)) return current;
+        saveState(remoteState);
+        setSyncStatus("Actualizado desde otro dispositivo");
+        return remoteState;
+      });
+    });
+  }, [isHydrated]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -396,7 +448,7 @@ export function App() {
 
   const login = ({ username, password }) => {
     const normalizedUsername = username.trim().toUpperCase().replace(/\s+/g, " ");
-    const user = users.find((item) => item.username === normalizedUsername && item.password === password);
+    const user = appUsers.find((item) => item.username === normalizedUsername && item.password === password);
     if (!user) return false;
     const sessionUser = {
       username: user.username,
@@ -520,7 +572,7 @@ export function App() {
     if (carTicket && ids.includes(carTicket.id)) setCarTicket(null);
   };
 
-  if (!currentUser) return <LoginScreen onLogin={login} />;
+  if (!currentUser) return <LoginScreen onLogin={login} syncStatus={syncStatus} />;
 
   return (
     <div className="app-shell">
@@ -533,6 +585,7 @@ export function App() {
           </div>
           {currentUser.role === "maestro" && (
             <div className="top-actions">
+              <span className="sync-status">{syncStatus}</span>
               <button className="ghost" onClick={resetDemo}>Recargar demo</button>
               <button className="primary" onClick={() => setEditingPuesto(emptyPuesto)}>Nuevo puesto</button>
             </div>
@@ -563,7 +616,7 @@ export function App() {
   );
 }
 
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, syncStatus }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
 
@@ -580,6 +633,7 @@ function LoginScreen({ onLogin }) {
         <div>
           <p className="eyebrow">Acceso al sistema</p>
           <h1>Feria Nicolas Serpa</h1>
+          <p className="login-sync">{syncStatus}</p>
         </div>
         <form className="form" onSubmit={submit}>
           <label>Usuario
@@ -1165,12 +1219,10 @@ function loadSessionUser() {
     const stored = localStorage.getItem(sessionKey);
     if (!stored) return null;
     const sessionUser = JSON.parse(stored);
-    const user = users.find((item) => item.username === sessionUser.username);
-    if (!user) return null;
     return {
-      username: user.username,
-      role: user.role,
-      allowedViews: user.allowedViews,
+      username: sessionUser.username,
+      role: sessionUser.role,
+      allowedViews: sessionUser.allowedViews,
     };
   } catch {
     localStorage.removeItem(sessionKey);

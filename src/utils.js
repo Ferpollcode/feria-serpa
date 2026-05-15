@@ -1,4 +1,4 @@
-import { sectorRanges, sectors } from "./data.js";
+import { sectorRanges, sectors, users } from "./data.js";
 
 export const stateKey = "feria-nicolas-serpa-react-v1";
 export const pesos = new Intl.NumberFormat("es-AR", {
@@ -75,6 +75,7 @@ export function createDemoState() {
   });
 
   return {
+    users,
     puestos,
     payments: [],
     expenses: [
@@ -89,7 +90,7 @@ export function createDemoState() {
 export function loadState() {
   try {
     const stored = localStorage.getItem(stateKey);
-    if (stored) return JSON.parse(stored);
+    if (stored) return normalizeState(JSON.parse(stored));
   } catch {
     localStorage.removeItem(stateKey);
   }
@@ -97,7 +98,23 @@ export function loadState() {
 }
 
 export function saveState(state) {
-  localStorage.setItem(stateKey, JSON.stringify(state));
+  localStorage.setItem(stateKey, JSON.stringify(normalizeState(state)));
+}
+
+export function normalizeState(state) {
+  return {
+    users,
+    puestos: [],
+    payments: [],
+    expenses: [],
+    cars: [],
+    ...state,
+    users: Array.isArray(state?.users) && state.users.length ? state.users : users,
+    puestos: Array.isArray(state?.puestos) ? state.puestos : [],
+    payments: Array.isArray(state?.payments) ? state.payments : [],
+    expenses: Array.isArray(state?.expenses) ? state.expenses : [],
+    cars: Array.isArray(state?.cars) ? state.cars : [],
+  };
 }
 
 export function isToday(date) {

@@ -13,7 +13,7 @@ Aplicacion web en React para la gestion diaria de la Feria Nicolas Serpa. Permit
 - Registro y listado de gastos.
 - Control de ingreso de autos con comprobante de playa.
 - Estadisticas por dia, domingo actual y mes.
-- Persistencia local en el navegador.
+- Persistencia compartida en Supabase con respaldo local en el navegador.
 - Diseno responsive con menu mobile desplegable.
 
 ## Tecnologias
@@ -22,7 +22,8 @@ Aplicacion web en React para la gestion diaria de la Feria Nicolas Serpa. Permit
 - Vite 7
 - JavaScript
 - CSS
-- LocalStorage
+- Supabase
+- LocalStorage como respaldo local
 
 ## Requisitos
 
@@ -36,6 +37,13 @@ npm install
 ```
 
 ## Uso en desarrollo
+
+Crear un archivo `.env` basado en `.env.example`:
+
+```txt
+VITE_SUPABASE_URL=https://TU-PROYECTO.supabase.co
+VITE_SUPABASE_ANON_KEY=TU_ANON_KEY
+```
 
 ```bash
 npm run dev
@@ -55,6 +63,24 @@ npm run build
 
 El resultado se genera en `dist/`.
 
+## Configuracion de Supabase
+
+1. Abrir el SQL Editor del proyecto en Supabase.
+2. Ejecutar el contenido de `supabase.sql`.
+3. Copiar `Project URL` y `anon public key` desde Supabase.
+4. Pegarlos en `.env`.
+5. Reiniciar `npm run dev`.
+
+La app guarda el estado completo en la tabla `app_state`, fila `feria-serpa`. Si la tabla esta vacia, la primera carga sube el estado local actual como estado inicial.
+
+Para cargar manualmente el estado base actual en Supabase:
+
+```bash
+npm run seed:supabase
+```
+
+El estado guardado incluye puestos, cobranzas, gastos, autos y usuarios.
+
 ## Vista previa del build
 
 ```bash
@@ -72,10 +98,13 @@ react-app/
     App.jsx
     data.js
     main.jsx
+    remoteState.js
+    supabaseClient.js
     styles.css
     utils.js
   index.html
   package.json
+  supabase.sql
   vite.config.js
 ```
 
