@@ -608,6 +608,7 @@ export function App() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? "Conectando con Supabase..." : "Modo local");
   const [currentUser, setCurrentUser] = useState(() => loadSessionUser());
+  const [showLogin, setShowLogin] = useState(false);
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
@@ -854,7 +855,11 @@ export function App() {
     if (carTicket && ids.includes(carTicket.id)) setCarTicket(null);
   };
 
-  if (!currentUser) return <LoginScreen onLogin={login} syncStatus={syncStatus} />;
+  if (!currentUser) {
+    return showLogin
+      ? <LoginScreen onLogin={login} syncStatus={syncStatus} onBack={() => setShowLogin(false)} />
+      : <LandingPage onAccess={() => setShowLogin(true)} />;
+  }
 
   return (
     <div className="app-shell">
@@ -898,7 +903,91 @@ export function App() {
   );
 }
 
-function LoginScreen({ onLogin, syncStatus }) {
+function LandingPage({ onAccess }) {
+  const features = [
+    ["Puestos", "Alta, edicion y control de puestos por calle o sector, con titular, rubro, modalidad, estado e importe."],
+    ["Mapa visual", "Vista rapida de ocupados y libres para entender la feria por sectores sin recorrer planillas."],
+    ["Cobranza", "Registro de pagos, medios de cobro, domingos incluidos y comprobantes listos para imprimir."],
+    ["WhatsApp", "Mensaje de comprobante preparado para enviar al puestero despues de registrar el pago."],
+    ["Gastos", "Carga y consulta de egresos para ver el resultado real del dia, domingo o mes."],
+    ["Playa de autos", "Ingreso de patente, marca, color, tarifa y comprobante de estacionamiento por entrada."],
+    ["Estadisticas", "Metricas de puestos, cobranzas, autos, gastos, balance neto y actividad por cabina."],
+    ["Usuarios", "Perfiles con permisos por seccion para administracion, operadores y entradas."],
+  ];
+
+  return (
+    <main className="landing-page">
+      <header className="landing-nav">
+        <a className="landing-brand" href="#inicio" aria-label="Feria Nicolas Serpa">
+          <img src="/assets/logo-feria-serpa.png" alt="Feria Nicolas Serpa" />
+          <span>Feria Nicolas Serpa</span>
+        </a>
+        <button className="landing-login-button" type="button" onClick={onAccess}>Entrar al sistema</button>
+      </header>
+
+      <section className="landing-hero" id="inicio">
+        <div className="landing-hero-copy">
+          <p className="landing-kicker">Gestion diaria de feria, puestos y playa</p>
+          <h1>Una app simple para ordenar la operacion de la feria.</h1>
+          <p>
+            Centraliza puestos, cobranzas, gastos, estacionamiento, comprobantes,
+            estadisticas y usuarios en una interfaz preparada para escritorio y celular.
+          </p>
+          <div className="landing-actions">
+            <button className="landing-primary" type="button" onClick={onAccess}>Entrar al sistema</button>
+            <a className="landing-secondary" href="#funciones">Ver funciones</a>
+          </div>
+        </div>
+        <aside className="landing-summary" aria-label="Resumen operativo">
+          <img src="/assets/logo-feria-serpa.png" alt="" />
+          <div>
+            <span>Panel general</span>
+            <strong>Puestos, ingresos y balance en un vistazo.</strong>
+          </div>
+          <ul>
+            <li>Mapa por sectores</li>
+            <li>Tickets de cobranza</li>
+            <li>Comprobante de playa</li>
+            <li>Datos sincronizados</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section className="landing-section" id="funciones">
+        <div className="landing-section-head">
+          <p className="landing-kicker">Que ofrece</p>
+          <h2>Todo lo importante, sin hacerlo largo.</h2>
+          <span>Funciones pensadas para el trabajo real de administracion, cobranza y entradas.</span>
+        </div>
+        <div className="landing-feature-grid">
+          {features.map(([title, text]) => (
+            <article className="landing-feature" key={title}>
+              <strong>{title}</strong>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-strip">
+        <article>
+          <strong>Responsive</strong>
+          <p>Menu mobile, tablas adaptadas y botones grandes para usar desde el predio.</p>
+        </article>
+        <article>
+          <strong>Supabase + respaldo local</strong>
+          <p>Sincronizacion compartida y guardado local si la conexion no esta disponible.</p>
+        </article>
+        <article>
+          <strong>Impresion lista</strong>
+          <p>Comprobantes formateados para cobranza y playa de autos.</p>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function LoginScreen({ onLogin, syncStatus, onBack }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
 
@@ -938,6 +1027,7 @@ function LoginScreen({ onLogin, syncStatus }) {
           </label>
           {error && <p className="login-error">{error}</p>}
           <button className="primary">Ingresar</button>
+          <button className="ghost" type="button" onClick={onBack}>Volver a la landing</button>
         </form>
       </section>
     </main>
