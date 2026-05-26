@@ -84,6 +84,7 @@ export function createDemoState() {
       makeRecord("Personal", "Jornal administrativo", 35000),
     ],
     cars: [],
+    carAudit: [],
   };
 }
 
@@ -109,12 +110,14 @@ export function normalizeState(state) {
     payments: [],
     expenses: [],
     cars: [],
+    carAudit: [],
     ...state,
     users: normalizedUsers,
     puestos: Array.isArray(state?.puestos) ? state.puestos : [],
     payments: Array.isArray(state?.payments) ? state.payments : [],
     expenses: Array.isArray(state?.expenses) ? state.expenses : [],
     cars: Array.isArray(state?.cars) ? state.cars : [],
+    carAudit: Array.isArray(state?.carAudit) ? state.carAudit : [],
   };
 }
 

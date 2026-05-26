@@ -426,6 +426,450 @@ const paymentReceiptPrintStyles = `
   }
 `;
 
+const sundayReportPrintStyles = `
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #fff;
+    color: #111;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+    font-size: 11px;
+  }
+
+  body {
+    padding: 0;
+  }
+
+  .report {
+    width: 100%;
+  }
+
+  .report-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #111;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  h2 {
+    margin: 18px 0 8px;
+    font-size: 15px;
+    line-height: 1.15;
+  }
+
+  h3 {
+    margin: 14px 0 6px;
+    font-size: 12px;
+  }
+
+  .report-date {
+    text-align: right;
+    font-weight: 800;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0 4px;
+  }
+
+  .summary-card {
+    border: 1px solid #111;
+    padding: 8px;
+  }
+
+  .summary-card span {
+    display: block;
+    margin-bottom: 5px;
+    color: #444;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .summary-card strong {
+    font-size: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    padding: 5px 6px;
+    border: 1px solid #aaa;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #eee;
+    color: #111;
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+
+  td.num,
+  th.num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .puestos-report-table th:nth-child(1),
+  .puestos-report-table td:nth-child(1) {
+    width: 13%;
+  }
+
+  .puestos-report-table th:nth-child(2),
+  .puestos-report-table td:nth-child(2) {
+    width: 24%;
+  }
+
+  .puestos-report-table th:nth-child(3),
+  .puestos-report-table td:nth-child(3) {
+    width: 14%;
+  }
+
+  .puestos-report-table th:nth-child(4),
+  .puestos-report-table td:nth-child(4) {
+    width: 18%;
+  }
+
+  .puestos-report-table th:nth-child(5),
+  .puestos-report-table td:nth-child(5),
+  .puestos-report-table th:nth-child(6),
+  .puestos-report-table td:nth-child(6) {
+    width: 15.5%;
+  }
+
+  .section-total {
+    margin-top: 6px;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .empty-report {
+    padding: 8px;
+    border: 1px solid #aaa;
+    color: #444;
+  }
+`;
+
+const puestosMonthlyReportPrintStyles = `
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #fff;
+    color: #111;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+    font-size: 8.5px;
+  }
+
+  .report {
+    width: 100%;
+  }
+
+  .report-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid #111;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  h2 {
+    margin: 12px 0 5px;
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .report-date {
+    text-align: right;
+    font-weight: 800;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    padding: 3px 4px;
+    border: 1px solid #aaa;
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+
+  th {
+    background: #eee;
+    color: #111;
+    font-size: 7px;
+    text-transform: uppercase;
+  }
+
+  .puestos-month-table th:nth-child(1),
+  .puestos-month-table td:nth-child(1) {
+    width: 10%;
+  }
+
+  .puestos-month-table th:nth-child(2),
+  .puestos-month-table td:nth-child(2) {
+    width: 19%;
+  }
+
+  .puestos-month-table th:nth-child(3),
+  .puestos-month-table td:nth-child(3) {
+    width: 11%;
+  }
+
+  .puestos-month-table th:nth-child(4),
+  .puestos-month-table td:nth-child(4) {
+    width: 13%;
+  }
+
+  .puestos-month-table th:nth-child(5),
+  .puestos-month-table td:nth-child(5) {
+    width: 9%;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .puestos-month-table th:nth-child(6),
+  .puestos-month-table td:nth-child(6) {
+    width: 14%;
+  }
+
+  .puestos-month-table th:nth-child(6),
+  .puestos-month-table td:nth-child(6) {
+    text-align: left;
+  }
+
+  .puestos-month-table th:nth-child(n+7),
+  .puestos-month-table td:nth-child(n+7) {
+    width: 4.8%;
+  }
+
+  .sunday-cell {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 900;
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+
+  .paid-mark {
+    color: #0f6b3b;
+  }
+
+  .unpaid-mark {
+    color: #9b1c1c;
+  }
+
+  .empty-report {
+    padding: 8px;
+    border: 1px solid #aaa;
+    color: #444;
+  }
+`;
+
+const carAuditReportPrintStyles = `
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #fff;
+    color: #111;
+    font-family: Futura, "Century Gothic", "Trebuchet MS", Arial, sans-serif;
+    font-size: 10px;
+  }
+
+  .report {
+    width: 100%;
+  }
+
+  .report-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #111;
+  }
+
+  h1,
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+
+  h2 {
+    margin: 14px 0 7px;
+    font-size: 13px;
+  }
+
+  .report-date {
+    text-align: right;
+    font-weight: 800;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .summary-card {
+    border: 1px solid #111;
+    padding: 8px;
+  }
+
+  .summary-card span {
+    display: block;
+    margin-bottom: 5px;
+    color: #444;
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .summary-card strong {
+    font-size: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    padding: 4px 5px;
+    border: 1px solid #aaa;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  th {
+    background: #eee;
+    font-size: 8px;
+    text-transform: uppercase;
+  }
+
+  .audit-table th:nth-child(1),
+  .audit-table td:nth-child(1) {
+    width: 12%;
+  }
+
+  .audit-table th:nth-child(2),
+  .audit-table td:nth-child(2) {
+    width: 12%;
+  }
+
+  .audit-table th:nth-child(3),
+  .audit-table td:nth-child(3) {
+    width: 14%;
+  }
+
+  .audit-table th:nth-child(4),
+  .audit-table td:nth-child(4),
+  .audit-table th:nth-child(5),
+  .audit-table td:nth-child(5) {
+    width: 24%;
+  }
+
+  .audit-table th:nth-child(6),
+  .audit-table td:nth-child(6) {
+    width: 14%;
+  }
+
+  .empty-report {
+    padding: 10px;
+    border: 1px solid #aaa;
+    color: #444;
+  }
+`;
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -433,6 +877,435 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function groupBy(items, getKey) {
+  return items.reduce((groups, item) => {
+    const key = getKey(item);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+    return groups;
+  }, {});
+}
+
+function sameCalendarDay(a, b) {
+  const first = new Date(a);
+  const second = new Date(b);
+  return first.getDate() === second.getDate()
+    && first.getMonth() === second.getMonth()
+    && first.getFullYear() === second.getFullYear();
+}
+
+function paymentCoversSunday(payment, sunday) {
+  if (payment.sundayDates?.length) {
+    return payment.sundayDates.some((date) => sameCalendarDay(date, sunday));
+  }
+  return sameCalendarDay(payment.date, sunday);
+}
+
+function getMonthSundays(date) {
+  const base = new Date(date);
+  const cursor = new Date(base.getFullYear(), base.getMonth(), 1);
+  const sundays = [];
+
+  while (cursor.getMonth() === base.getMonth()) {
+    if (cursor.getDay() === 0) sundays.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return sundays;
+}
+
+function shortDate(date) {
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(new Date(date));
+}
+
+function buildPuestosMonthlyReportHtml(state, mode = "month") {
+  const now = new Date();
+  const currentSunday = startOfCurrentSunday(now);
+  const reportSundays = mode === "current-sunday" ? [currentSunday] : getCurrentMonthSundays();
+  const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const previousMonthSundays = getMonthSundays(previousMonth);
+  const occupiedPuestos = state.puestos
+    .filter((puesto) => puesto.ocupacion === "ocupado")
+    .sort(comparePuestos);
+  const paymentsByPuesto = groupBy(state.payments, (payment) => payment.puestoId || getPuestoId(payment.sector, payment.numero));
+  const puestosBySector = groupBy(occupiedPuestos, (puesto) => puesto.sector || "Sin calle");
+  const orderedSectors = [
+    ...sectors.filter((sector) => puestosBySector[sector]),
+    ...Object.keys(puestosBySector).filter((sector) => !sectors.includes(sector)),
+  ];
+  const sundayHeaders = reportSundays.map((date) => `<th class="sunday-cell">${escapeHtml(shortDate(date))}</th>`).join("");
+  const reportTitle = mode === "current-sunday" ? "Listado del domingo actual" : "Listado mensual de puestos";
+  const reportSubtitle = mode === "current-sunday" ? formatDateOnly(currentSunday) : formatMonthYear(now);
+
+  const sectorSections = orderedSectors.length
+    ? orderedSectors.map((sector) => {
+        const rows = puestosBySector[sector].map((puesto) => {
+          const payments = paymentsByPuesto[puesto.id] || [];
+          const previousDebt = previousMonthSundays.filter((sunday) => !payments.some((payment) => paymentCoversSunday(payment, sunday)));
+          const debtText = previousDebt.length ? previousDebt.map((date) => shortDate(date)).join(" | ") : "-";
+          const sundayCells = reportSundays.map((sunday) => {
+            const isPaid = payments.some((payment) => paymentCoversSunday(payment, sunday));
+            return `<td class="sunday-cell ${isPaid ? "paid-mark" : "unpaid-mark"}">${isPaid ? "&#10003;" : "X"}</td>`;
+          }).join("");
+          return `
+            <tr>
+              <td>${escapeHtml(`${puesto.sector} ${puesto.numero}`)}</td>
+              <td>${escapeHtml(fullName(puesto) || "Sin titular")}</td>
+              <td>${escapeHtml(puesto.telefono || "-")}</td>
+              <td>${escapeHtml(puesto.rubro || "-")}</td>
+              <td>${escapeHtml(pesos.format(Number(puesto.importe || 0)))}</td>
+              <td class="${previousDebt.length ? "unpaid-mark" : ""}">${escapeHtml(debtText)}</td>
+              ${sundayCells}
+            </tr>
+          `;
+        }).join("");
+        return `
+          <h2>${escapeHtml(sector)} - ${puestosBySector[sector].length} puestos con puestero</h2>
+          <table class="puestos-month-table">
+            <thead>
+              <tr>
+                <th>Puesto</th>
+                <th>Titular</th>
+                <th>Telefono</th>
+                <th>Rubro</th>
+                <th>Importe</th>
+                <th>Deuda anterior</th>
+                ${sundayHeaders}
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }).join("")
+    : `<p class="empty-report">No hay puestos ocupados cargados.</p>`;
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${escapeHtml(reportTitle)} ${escapeHtml(reportSubtitle)}</title>
+        <style>${puestosMonthlyReportPrintStyles}</style>
+      </head>
+      <body>
+        <main class="report">
+          <header class="report-head">
+            <div>
+              <h1>${escapeHtml(reportTitle)}</h1>
+              <p>Feria Nicolas Serpa - ${escapeHtml(reportSubtitle)}</p>
+            </div>
+            <div class="report-date">
+              <p>Domingos: ${escapeHtml(reportSundays.map((date) => shortDate(date)).join(" | "))}</p>
+              <p>Deuda anterior: domingos impagos de ${escapeHtml(formatMonthYear(previousMonth))}</p>
+              <p>Emitido: ${escapeHtml(formatDate(new Date()))}</p>
+              <p>&#10003; Pagado | X Pendiente</p>
+            </div>
+          </header>
+          ${sectorSections}
+        </main>
+      </body>
+    </html>
+  `;
+}
+
+function downloadPuestosMonthlyReport(state, mode = "month") {
+  const frame = document.createElement("iframe");
+  frame.title = "Listado mensual de puestos";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(buildPuestosMonthlyReportHtml(state, mode));
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
+}
+
+function describeCar(car) {
+  if (!car) return "-";
+  return [
+    `Patente: ${car.plate || "-"}`,
+    `Marca: ${car.brand || "-"}`,
+    `Color: ${car.color || "-"}`,
+    `Entrada: ${car.entryUser || "-"}`,
+    `Importe: ${pesos.format(Number(car.amount || 0))}`,
+    `Fecha: ${car.date ? formatDate(car.date) : "-"}`,
+  ].join(" | ");
+}
+
+function buildCarAuditReportHtml(state) {
+  const audit = [...(state.carAudit || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const edits = audit.filter((item) => item.action === "edit").length;
+  const deletes = audit.filter((item) => item.action === "delete").length;
+  const affectedMoney = audit.reduce((sum, item) => sum + Number(item.before?.amount || 0), 0);
+  const rows = audit.map((item) => `
+    <tr>
+      <td>${escapeHtml(formatDate(item.date))}</td>
+      <td>${escapeHtml(item.user || "-")}</td>
+      <td>${escapeHtml(item.action === "delete" ? "Borrado" : "Editado")}</td>
+      <td>${escapeHtml(describeCar(item.before))}</td>
+      <td>${escapeHtml(item.action === "delete" ? "-" : describeCar(item.after))}</td>
+      <td>${escapeHtml(item.reason || "Movimiento registrado por seguridad")}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Auditoria playa de autos</title>
+        <style>${carAuditReportPrintStyles}</style>
+      </head>
+      <body>
+        <main class="report">
+          <header class="report-head">
+            <div>
+              <h1>Auditoria de playa de autos</h1>
+              <p>Autos editados y borrados del sistema</p>
+            </div>
+            <div class="report-date">
+              <p>Emitido: ${escapeHtml(formatDate(new Date()))}</p>
+              <p>Feria Nicolas Serpa</p>
+            </div>
+          </header>
+          <section class="summary-grid">
+            <article class="summary-card"><span>Total movimientos</span><strong>${audit.length}</strong></article>
+            <article class="summary-card"><span>Editados</span><strong>${edits}</strong></article>
+            <article class="summary-card"><span>Borrados</span><strong>${deletes}</strong></article>
+          </section>
+          <p><strong>Importe involucrado:</strong> ${escapeHtml(pesos.format(affectedMoney))}</p>
+          <h2>Detalle de movimientos</h2>
+          ${rows ? `
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Usuario</th>
+                  <th>Accion</th>
+                  <th>Antes</th>
+                  <th>Despues</th>
+                  <th>Observacion</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          ` : `<p class="empty-report">No hay autos editados ni borrados registrados.</p>`}
+        </main>
+      </body>
+    </html>
+  `;
+}
+
+function downloadCarAuditReport(state) {
+  const frame = document.createElement("iframe");
+  frame.title = "Auditoria playa de autos";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(buildCarAuditReportHtml(state));
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
+}
+
+function buildSundayReportHtml({ state, range }) {
+  const payments = state.payments.filter((p) => isBetweenDates(p.date, range.start, range.end));
+  const cars = state.cars.filter((c) => isBetweenDates(c.date, range.start, range.end));
+  const expenses = state.expenses.filter((e) => isBetweenDates(e.date, range.start, range.end));
+  const paidOccupiedPuestos = state.puestos
+    .filter((puesto) => puesto.ocupacion === "ocupado" && puesto.pago === "pagado")
+    .sort(comparePuestos);
+  const puestoPayments = groupBy(payments, (payment) => getPuestoId(payment.sector, payment.numero));
+  const puestosBySector = groupBy(paidOccupiedPuestos, (puesto) => puesto.sector || "Sin calle");
+  const carsByEntry = groupBy(cars, (car) => car.entryUser || "Sin entrada");
+  const cobranzaTotal = sumAmounts(payments);
+  const playaTotal = sumAmounts(cars);
+  const expensesTotal = sumAmounts(expenses);
+  const income = cobranzaTotal + playaTotal;
+  const balance = income - expensesTotal;
+
+  const orderedSectors = [
+    ...sectors.filter((sector) => puestosBySector[sector]),
+    ...Object.keys(puestosBySector).filter((sector) => !sectors.includes(sector)),
+  ];
+
+  const puestoSections = orderedSectors.length
+    ? orderedSectors.map((sector) => {
+        const puestos = puestosBySector[sector];
+        const rows = puestos.map((puesto) => {
+          const paid = puestoPayments[getPuestoId(puesto.sector, puesto.numero)] || [];
+          const paidAmount = sumAmounts(paid);
+          return `
+            <tr>
+              <td>${escapeHtml(`${puesto.sector} ${puesto.numero}`)}</td>
+              <td>${escapeHtml(fullName(puesto) || "Sin titular")}</td>
+              <td>${escapeHtml(puesto.rubro || "-")}</td>
+              <td>${escapeHtml(puesto.modalidad || "-")}</td>
+              <td class="num">${escapeHtml(pesos.format(Number(puesto.importe || 0)))}</td>
+              <td class="num">${escapeHtml(pesos.format(paidAmount))}</td>
+            </tr>
+          `;
+        }).join("");
+        return `
+          <h3>${escapeHtml(sector)} - ${puestos.length} puestos ocupados pagados</h3>
+          <table class="puestos-report-table">
+            <thead>
+              <tr>
+                <th>Puesto</th>
+                <th>Titular</th>
+                <th>Rubro</th>
+                <th>Modalidad</th>
+                <th class="num">Importe puesto</th>
+                <th class="num">Cobrado domingo</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }).join("")
+    : `<p class="empty-report">No hay puestos ocupados y pagados cargados.</p>`;
+
+  const carRows = Object.entries(carsByEntry).sort(([a], [b]) => a.localeCompare(b)).map(([entry, items]) => `
+    <tr>
+      <td>${escapeHtml(entry)}</td>
+      <td class="num">${items.length}</td>
+      <td class="num">${escapeHtml(pesos.format(sumAmounts(items)))}</td>
+    </tr>
+  `).join("");
+
+  const expenseRows = expenses.map((expense) => `
+    <tr>
+      <td>${escapeHtml(expense.category || "-")}</td>
+      <td>${escapeHtml(expense.detail || "-")}</td>
+      <td>${escapeHtml(expense.provider || "-")}</td>
+      <td>${escapeHtml(expense.method || "-")}</td>
+      <td class="num">${escapeHtml(pesos.format(expense.amount))}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Resumen domingo ${escapeHtml(formatDateOnly(range.start))}</title>
+        <style>${sundayReportPrintStyles}</style>
+      </head>
+      <body>
+        <main class="report">
+          <header class="report-head">
+            <div>
+              <h1>Resumen del domingo</h1>
+              <p>Feria Nicolas Serpa</p>
+            </div>
+            <div class="report-date">
+              <p>${escapeHtml(formatDateOnly(range.start))}</p>
+              <p>Emitido: ${escapeHtml(formatDate(new Date()))}</p>
+            </div>
+          </header>
+          <section class="summary-grid">
+            <article class="summary-card"><span>Cobranzas puestos</span><strong>${escapeHtml(pesos.format(cobranzaTotal))}</strong></article>
+            <article class="summary-card"><span>Playa de autos</span><strong>${escapeHtml(pesos.format(playaTotal))}</strong></article>
+            <article class="summary-card"><span>Gastos</span><strong>${escapeHtml(pesos.format(expensesTotal))}</strong></article>
+            <article class="summary-card"><span>Ganancia total</span><strong>${escapeHtml(pesos.format(balance))}</strong></article>
+          </section>
+          <h2>Puestos ocupados pagados por calle</h2>
+          ${puestoSections}
+          <h2>Playa de autos por entrada</h2>
+          ${carRows ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Entrada</th>
+                  <th class="num">Autos ingresados</th>
+                  <th class="num">Dinero ingresado</th>
+                </tr>
+              </thead>
+              <tbody>${carRows}</tbody>
+            </table>
+            <p class="section-total">Total playa: ${escapeHtml(cars.length)} autos - ${escapeHtml(pesos.format(playaTotal))}</p>
+          ` : `<p class="empty-report">No hay autos ingresados para este domingo.</p>`}
+          <h2>Balance general del domingo</h2>
+          <table>
+            <tbody>
+              <tr><th>Ingresos por puestos</th><td class="num">${escapeHtml(pesos.format(cobranzaTotal))}</td></tr>
+              <tr><th>Ingresos por playa de autos</th><td class="num">${escapeHtml(pesos.format(playaTotal))}</td></tr>
+              <tr><th>Ingresos totales</th><td class="num">${escapeHtml(pesos.format(income))}</td></tr>
+              <tr><th>Gastos totales</th><td class="num">${escapeHtml(pesos.format(expensesTotal))}</td></tr>
+              <tr><th>Ganancia total</th><td class="num">${escapeHtml(pesos.format(balance))}</td></tr>
+            </tbody>
+          </table>
+          <h2>Detalle de gastos</h2>
+          ${expenseRows ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Detalle</th>
+                  <th>Proveedor</th>
+                  <th>Medio</th>
+                  <th class="num">Importe</th>
+                </tr>
+              </thead>
+              <tbody>${expenseRows}</tbody>
+            </table>
+          ` : `<p class="empty-report">No hay gastos cargados para este domingo.</p>`}
+        </main>
+      </body>
+    </html>
+  `;
+}
+
+function downloadSundayReport(state) {
+  const sunday = startOfCurrentSunday(new Date());
+  const range = {
+    start: sunday,
+    end: endOfDay(sunday),
+  };
+  const frame = document.createElement("iframe");
+  frame.title = "Resumen dominical";
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+
+  const printDocument = frame.contentDocument;
+  printDocument.open();
+  printDocument.write(buildSundayReportHtml({ state, range }));
+  printDocument.close();
+
+  const cleanup = () => frame.remove();
+  frame.contentWindow.addEventListener("afterprint", cleanup, { once: true });
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  window.setTimeout(cleanup, 1000);
 }
 
 function printPaymentReceipt(payment, mode = "single") {
@@ -842,14 +1715,43 @@ export function App() {
     };
     updateState((draft) => {
       const index = draft.cars.findIndex((item) => item.id === next.id);
-      if (index >= 0) draft.cars[index] = next;
-      else draft.cars.unshift(next);
+      if (index >= 0) {
+        const previous = draft.cars[index];
+        draft.cars[index] = next;
+        draft.carAudit = draft.carAudit || [];
+        draft.carAudit.unshift({
+          id: crypto.randomUUID(),
+          action: "edit",
+          carId: next.id,
+          user: currentUser?.username || "Sin usuario",
+          date: new Date().toISOString(),
+          before: previous,
+          after: next,
+          reason: "Auto editado desde Playa de autos",
+        });
+      } else {
+        draft.cars.unshift(next);
+      }
     });
     setCarTicket(next);
   };
 
   const deleteCars = (ids) => {
     updateState((draft) => {
+      const deletedCars = draft.cars.filter((car) => ids.includes(car.id));
+      draft.carAudit = draft.carAudit || [];
+      deletedCars.forEach((car) => {
+        draft.carAudit.unshift({
+          id: crypto.randomUUID(),
+          action: "delete",
+          carId: car.id,
+          user: currentUser?.username || "Sin usuario",
+          date: new Date().toISOString(),
+          before: car,
+          after: null,
+          reason: "Auto borrado desde Playa de autos",
+        });
+      });
       draft.cars = draft.cars.filter((car) => !ids.includes(car.id));
     });
     if (carTicket && ids.includes(carTicket.id)) setCarTicket(null);
@@ -1147,6 +2049,7 @@ function Puestos({ state, editPuesto }) {
   const [query, setQuery] = useState("");
   const [sector, setSector] = useState("");
   const [status, setStatus] = useState("");
+  const [reportMode, setReportMode] = useState("current-sunday");
   const rows = state.puestos
     .filter((p) => !sector || p.sector === sector)
     .filter((p) => !status || p.ocupacion === status || p.pago === status)
@@ -1168,6 +2071,11 @@ function Puestos({ state, editPuesto }) {
           <option value="pagado">Pagado</option>
           <option value="pendiente">Pendiente</option>
         </select>
+        <select value={reportMode} onChange={(e) => setReportMode(e.target.value)}>
+          <option value="current-sunday">PDF domingo actual</option>
+          <option value="month">PDF todos los domingos del mes</option>
+        </select>
+        <button className="ghost" onClick={() => downloadPuestosMonthlyReport(state, reportMode)}>Descargar PDF</button>
       </div>
       <div className="table-wrap">
         <table>
@@ -1397,7 +2305,11 @@ function Playa({ state, saveCar, deleteCars, carTicket, setCarTicket, currentUse
       <section className="panel">
         <div className="panel-head">
           <h3>{form.id ? "Editar auto" : "Ingreso de auto"}</h3>
-          {form.id && <button className="ghost" onClick={resetForm}>Nuevo ingreso</button>}
+          <div className="panel-actions">
+            <span className="security-indicator">{state.carAudit?.length || 0} movimientos auditados</span>
+            <button className="ghost" type="button" onClick={() => downloadCarAuditReport(state)}>PDF seguridad</button>
+            {form.id && <button className="ghost" type="button" onClick={resetForm}>Nuevo ingreso</button>}
+          </div>
         </div>
         <form className="form" onSubmit={(e) => { e.preventDefault(); saveCar(form); resetForm(); }}>
           <label>Patente <input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} required /></label>
@@ -1446,8 +2358,10 @@ function Estadisticas({ state }) {
   const entryStats = ["ENTRADA 1", "ENTRADA 2", "ENTRADA 3", "ENTRADA 4"].map((entry) => ({
     entry,
     count: cars.filter((car) => car.entryUser === entry).length,
+    amount: sumAmounts(cars.filter((car) => car.entryUser === entry)),
   }));
-  const unassignedCars = cars.filter((car) => !car.entryUser || !entryStats.some((item) => item.entry === car.entryUser)).length;
+  const unassignedCarItems = cars.filter((car) => !car.entryUser || !entryStats.some((item) => item.entry === car.entryUser));
+  const unassignedCars = unassignedCarItems.length;
   const maxEntryCount = Math.max(1, ...entryStats.map((item) => item.count), unassignedCars);
 
   return (
@@ -1462,11 +2376,14 @@ function Estadisticas({ state }) {
         <section className="panel">
           <div className="panel-head">
             <h3>{range.title}</h3>
-            <select className="compact-select" value={period} onChange={(e) => setPeriod(e.target.value)}>
-              <option value="today">Hoy</option>
-              <option value="sunday">Domingo</option>
-              <option value="month">Mes</option>
-            </select>
+            <div className="panel-actions">
+              <button className="ghost" onClick={() => downloadSundayReport(state)}>Descargar PDF domingo</button>
+              <select className="compact-select" value={period} onChange={(e) => setPeriod(e.target.value)}>
+                <option value="today">Hoy</option>
+                <option value="sunday">Domingo</option>
+                <option value="month">Mes</option>
+              </select>
+            </div>
           </div>
           <span className="period-label">{range.label}</span>
           <div className="balance-grid">
@@ -1490,8 +2407,8 @@ function Estadisticas({ state }) {
         <div className="panel-head"><h3>Autos por entrada</h3><strong>{cars.length} total</strong></div>
         <span className="period-label">{range.label}</span>
         <StatRows items={[
-          ...entryStats.map((item) => [item.entry, item.count, maxEntryCount]),
-          ...(unassignedCars ? [["Sin entrada", unassignedCars, maxEntryCount]] : []),
+          ...entryStats.map((item) => [item.entry, item.count, maxEntryCount, pesos.format(item.amount)]),
+          ...(unassignedCars ? [["Sin entrada", unassignedCars, maxEntryCount, pesos.format(sumAmounts(unassignedCarItems))]] : []),
         ]} />
       </section>
     </>
@@ -1746,7 +2663,7 @@ function Badge({ tone, children }) {
 }
 
 function StatRows({ items }) {
-  return <div className="stat-list">{items.map(([label, value, total]) => <article className="stat-row" key={label}><div className="stat-row-top"><strong>{label}</strong><span>{value} de {total}</span></div><div className="stat-bar"><span style={{ width: `${percent(value, total)}%` }} /></div></article>)}</div>;
+  return <div className="stat-list">{items.map(([label, value, total, detail]) => <article className="stat-row" key={label}><div className="stat-row-top"><strong>{label}</strong><span>{detail ? `${value} de ${total} | ${detail}` : `${value} de ${total}`}</span></div><div className="stat-bar"><span style={{ width: `${percent(value, total)}%` }} /></div></article>)}</div>;
 }
 
 function loadSessionUser() {

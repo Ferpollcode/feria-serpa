@@ -546,6 +546,14 @@ button,
   gap: 12px;
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .primary,
 .ghost,
 .icon {
@@ -584,6 +592,20 @@ button,
   padding: 0 12px;
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.security-indicator {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #fff1f0;
+  color: var(--danger);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
   white-space: nowrap;
 }
 
@@ -1031,6 +1053,23 @@ button,
 
 .toolbar {
   margin-bottom: 14px;
+}
+
+#puestos .toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(170px, 0.72fr)) minmax(150px, 0.58fr);
+  align-items: stretch;
+}
+
+#puestos .toolbar input,
+#puestos .toolbar select,
+#puestos .toolbar button {
+  width: 100%;
+  min-height: 40px;
+}
+
+#puestos .toolbar .ghost {
+  white-space: nowrap;
 }
 
 input,
@@ -2141,6 +2180,14 @@ dialog[open].modal {
   table {
     min-width: 900px;
   }
+
+  #puestos .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #puestos .toolbar input {
+    grid-column: 1 / -1;
+  }
 }
 
 @media screen and (max-width: 900px) {
@@ -2164,11 +2211,25 @@ dialog[open].modal {
     align-items: stretch;
   }
 
+  #puestos .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  #puestos .toolbar input {
+    grid-column: auto;
+  }
+
   .toolbar input,
   .toolbar select,
+  .panel-actions,
   .compact-select {
     width: 100%;
     max-width: none;
+  }
+
+  .panel-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .street-grid {
