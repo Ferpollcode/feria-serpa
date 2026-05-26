@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
+import { jsPDF } from "jspdf";
 import { carBrands, carColors, navItems, rubros, sectors, users as defaultUsers } from "./data.js";
 import { loadRemoteState, saveRemoteState, subscribeToRemoteState } from "./remoteState.js";
 import { isSupabaseConfigured } from "./supabaseClient.js";
@@ -901,6 +902,79 @@ function makeVerifyUrl(type, id) {
 
 async function makeQrDataUrl(value) {
   return QRCode.toDataURL(value, { margin: 1, width: 140 });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function paymentPdfFilename(payment) {
+  const puesto = `${payment.sector || "Puesto"}-${payment.numero || ""}`.replace(/\s+/g, "-");
+  const ticket = payment.id ? payment.id.slice(0, 8).toUpperCase() : "TICKET";
+  return `ticket-cobranza-${puesto}-${ticket}.pdf`;
+}
+
+async function makePaymentPdfFile(payment) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const qrUrl = await makeQrDataUrl(makeVerifyUrl("payment", payment.id));
+  const ticketNumber = payment.id ? payment.id.slice(0, 8).toUpperCase() : "";
+  const sundays = payment.sundayDates?.length ? payment.sundayDates.map((date) => formatDateOnly(date)).join(" | ") : "";
+  const filename = paymentPdfFilename(payment);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("Feria Nicolas Serpa", 18, 20);
+  doc.setFontSize(14);
+  doc.text("Comprobante de cobranza", 18, 30);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Comprobante no valido como factura.", 18, 37);
+
+  doc.setDrawColor(20, 108, 99);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(16, 46, 178, 94, 3, 3);
+
+  const rows = [
+    ["Ticket", ticketNumber],
+    ["Fecha", formatDate(payment.date)],
+    ["Puesto", `${payment.sector} ${payment.numero}`],
+    ["Titular", payment.name || "-"],
+    ["Concepto", payment.concept || "-"],
+    ["Medio", payment.method || "-"],
+    ["Total", pesos.format(payment.amount)],
+  ];
+
+  let y = 58;
+  rows.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(`${label}:`, 24, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(String(value), 62, y, { maxWidth: 82 });
+    y += 10;
+  });
+
+  if (sundays) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Domingos:", 24, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(sundays, 62, y, { maxWidth: 82 });
+  }
+
+  doc.addImage(qrUrl, "PNG", 152, 58, 28, 28);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Escanear para verificar pago", 146, 92);
+
+  const blob = doc.output("blob");
+  return new File([blob], filename, { type: "application/pdf" });
 }
 
 function groupBy(items, getKey) {
@@ -2368,7 +2442,20 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
       window.alert("Este puestero no tiene telefono cargado.");
       return;
     }
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(makePaymentWhatsappMessage(lastPayment))}`, "_blank");
+    const file = await makePaymentPdfFile(lastPayment);
+    const message = makePaymentWhatsappMessage(lastPayment);
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        title: "Ticket de cobranza",
+        text: message,
+        files: [file],
+      });
+      return;
+    }
+
+    downloadBlob(file, file.name);
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`${message}\n\nSe descargo el PDF del ticket para adjuntar en este chat.`)}`, "_blank");
   };
 
   return (
@@ -2471,7 +2558,7 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
         <div className="ticket-actions print-hide">
           <button className="ghost" onClick={printPaymentTicket}>Imprimir ticket</button>
           {lastPayment?.sundayDates?.length > 1 && <button className="ghost" onClick={printSundayTickets}>Tickets por domingo</button>}
-          <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>WhatsApp</button>
+          <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>PDF WhatsApp</button>
         </div>
       </section>
     </div>
