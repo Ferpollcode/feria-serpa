@@ -2599,6 +2599,155 @@ dialog[open].modal {
   }
 }
 
+@media screen and (max-width: 700px) {
+  .panel-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .panel-actions > *,
+  .panel-actions button,
+  .panel-actions select {
+    width: 100%;
+  }
+
+  .security-indicator {
+    min-height: 40px;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .month-sundays-box {
+    overflow: hidden;
+  }
+
+  .sunday-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sunday-choice-grid .check-line {
+    min-height: 44px;
+    align-items: flex-start;
+    line-height: 1.25;
+  }
+
+  .ticket-qr {
+    width: 88px;
+    height: 88px;
+  }
+
+  .verification-card {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    overflow: auto;
+  }
+
+  .verification-result {
+    padding: 12px;
+  }
+
+  .verification-result strong {
+    font-size: 16px;
+    line-height: 1.15;
+  }
+}
+
+@media screen and (max-width: 430px) {
+  .month-sundays-box span,
+  .month-sundays-box small {
+    overflow-wrap: anywhere;
+  }
+
+  .sunday-choice-grid .check-line {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .ticket-qr {
+    width: 76px;
+    height: 76px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 20px rgba(91, 39, 0, 0.14);
+  }
+
+  .menu-toggle {
+    min-height: 44px;
+  }
+
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .sidebar-user span {
+    max-width: 110px;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-user .logout-button {
+    min-height: 44px;
+    width: auto;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .nav.open {
+    grid-column: 1 / -1;
+  }
+
+  .shell {
+    width: 100%;
+  }
+}
+
+@media screen and (max-width: 430px) {
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
+  }
+
+  .sidebar-user {
+    justify-content: flex-end;
+  }
+
+  .sidebar-user span {
+    max-width: 78px;
+    font-size: 10px;
+  }
+
+  .sidebar-user .logout-button {
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
+
 .empty {
   color: var(--muted);
   margin: 0;
