@@ -609,6 +609,39 @@ button,
   white-space: nowrap;
 }
 
+.verification-card {
+  width: min(520px, calc(100vw - 24px));
+}
+
+.verification-result {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: white;
+}
+
+.verification-result strong {
+  font-size: 18px;
+}
+
+.verification-result p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.verification-result.ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.verification-result.danger {
+  border-color: #fecaca;
+  background: #fff1f0;
+}
+
 .muted-text {
   margin: 6px 0 0;
   color: var(--muted);
@@ -697,6 +730,12 @@ button,
 .check-line input {
   width: auto;
   accent-color: var(--primary);
+}
+
+.sunday-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
 }
 
 .view {
@@ -2563,6 +2602,16 @@ dialog[open].modal {
 .empty {
   color: var(--muted);
   margin: 0;
+}
+
+.ticket-qr {
+  width: 96px;
+  height: 96px;
+  display: block;
+  margin: 12px auto 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
 }
 
 .dashboard-layout {

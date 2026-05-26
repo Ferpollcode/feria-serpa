@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 import { carBrands, carColors, navItems, rubros, sectors, users as defaultUsers } from "./data.js";
 import { loadRemoteState, saveRemoteState, subscribeToRemoteState } from "./remoteState.js";
 import { isSupabaseConfigured } from "./supabaseClient.js";
@@ -289,6 +290,13 @@ const carReceiptPrintStyles = `
     text-align: right;
     font-size: 11px;
   }
+
+  .receipt-qr {
+    width: 16mm;
+    height: 16mm;
+    justify-self: end;
+    align-self: end;
+  }
 `;
 
 const paymentReceiptPrintStyles = `
@@ -423,6 +431,13 @@ const paymentReceiptPrintStyles = `
   .receipt-total {
     text-align: right;
     font-size: 11px;
+  }
+
+  .receipt-qr {
+    width: 16mm;
+    height: 16mm;
+    justify-self: end;
+    align-self: end;
   }
 `;
 
@@ -879,6 +894,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function makeVerifyUrl(type, id) {
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return `${base}?verify=${encodeURIComponent(`${type}:${id}`)}`;
+}
+
+async function makeQrDataUrl(value) {
+  return QRCode.toDataURL(value, { margin: 1, width: 140 });
+}
+
 function groupBy(items, getKey) {
   return items.reduce((groups, item) => {
     const key = getKey(item);
@@ -918,6 +942,24 @@ function getMonthSundays(date) {
 
 function shortDate(date) {
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(new Date(date));
+}
+
+function getPuestoSundayDates(plan) {
+  const now = new Date();
+  if (plan === "current-sunday") return [startOfCurrentSunday(now)];
+  if (plan === "month-all") return getCurrentMonthSundays();
+  if (plan === "month-remaining") {
+    const today = startOfDay(now);
+    return getCurrentMonthSundays().filter((date) => date >= today);
+  }
+  return [];
+}
+
+function getPuestoSundayPlanLabel(plan) {
+  if (plan === "current-sunday") return "Pago domingo actual";
+  if (plan === "month-all") return "Todos los domingos del mes";
+  if (plan === "month-remaining") return "Domingos restantes del mes";
+  return "Sin seleccion de domingos";
 }
 
 function buildPuestosMonthlyReportHtml(state, mode = "month") {
@@ -1308,7 +1350,7 @@ function downloadSundayReport(state) {
   window.setTimeout(cleanup, 1000);
 }
 
-function printPaymentReceipt(payment, mode = "single") {
+async function printPaymentReceipt(payment, mode = "single") {
   if (!payment) return;
   const frame = document.createElement("iframe");
   frame.title = "Impresion de comprobante";
@@ -1336,9 +1378,10 @@ function printPaymentReceipt(payment, mode = "single") {
         { title: payment.concept, copy: "Administracion", payment },
       ];
 
-  const html = copies.map(({ title, copy, payment: item }) => {
+  const html = (await Promise.all(copies.map(async ({ title, copy, payment: item }) => {
     const ticketNumber = item.id ? item.id.slice(0, 8).toUpperCase() : "";
     const sundayText = item.sundayDates?.length ? item.sundayDates.map((date) => formatDateOnly(date)).join(" | ") : "";
+    const qrUrl = await makeQrDataUrl(makeVerifyUrl("payment", payment.id));
     return `
       <section class="payment-receipt">
         <aside class="receipt-side">
@@ -1360,11 +1403,12 @@ function printPaymentReceipt(payment, mode = "single") {
             <div class="receipt-field"><span>Titular:</span><strong class="receipt-value">${escapeHtml(item.name)}</strong></div>
             <div class="receipt-field"><span>Medio:</span><strong class="receipt-value">${escapeHtml(item.method)}</strong></div>
             <div class="receipt-total">Total: ${escapeHtml(pesos.format(item.amount))}</div>
+            <img class="receipt-qr" src="${escapeHtml(qrUrl)}" alt="QR de verificacion">
           </div>
         </main>
       </section>
     `;
-  }).join("");
+  }))).join("");
 
   const printDocument = frame.contentDocument;
   printDocument.open();
@@ -1395,7 +1439,7 @@ function normalizeEntryLabel(value) {
   return text || "Cabina";
 }
 
-function printCarReceipt(car) {
+async function printCarReceipt(car) {
   if (!car) return;
   const frame = document.createElement("iframe");
   frame.title = "Impresion de comprobante";
@@ -1410,6 +1454,7 @@ function printCarReceipt(car) {
   const date = formatDateOnly(car.date).replace(/\//g, ".");
   const entry = normalizeEntryLabel(car.entryUser);
   const ticketNumber = car.id ? car.id.slice(0, 6).toUpperCase() : "";
+  const qrUrl = await makeQrDataUrl(makeVerifyUrl("car", car.id));
   const printDocument = frame.contentDocument;
   printDocument.open();
   printDocument.write(`
@@ -1440,6 +1485,7 @@ function printCarReceipt(car) {
               <div class="receipt-field"><span>Marca:</span><strong class="receipt-value">${escapeHtml(car.brand)}</strong></div>
               <div class="receipt-field"><span>Color:</span><strong class="receipt-value">${escapeHtml(car.color)}</strong></div>
               <div class="receipt-total">Importe: ${escapeHtml(pesos.format(car.amount))}</div>
+              <img class="receipt-qr" src="${escapeHtml(qrUrl)}" alt="QR de verificacion">
             </div>
           </main>
         </section>
@@ -1464,6 +1510,8 @@ const emptyPuesto = {
   telefono: "",
   rubro: "",
   modalidad: "Mensual",
+  sundayPlan: "none",
+  sundayDates: [],
   ocupacion: "libre",
   pago: "pendiente",
   importe: 28000,
@@ -1488,6 +1536,7 @@ export function App() {
   const [editingUser, setEditingUser] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
   const [carTicket, setCarTicket] = useState(null);
+  const [verificationTarget, setVerificationTarget] = useState(() => new URLSearchParams(window.location.search).get("verify") || "");
   const appUsers = state.users?.length ? state.users : defaultUsers;
   const isAdmin = currentUser?.role === "admin";
   const canManage = isAdmin || currentUser?.role === "maestro";
@@ -1646,7 +1695,9 @@ export function App() {
         window.alert(`El ${puesto.sector} ${puesto.numero} ya esta OCUPADO por ${fullName(existing) || "un puestero cargado"}.`);
         return;
       }
-      const next = { ...puesto, id, numero: Number(puesto.numero), importe: Number(puesto.importe), updatedAt: new Date().toISOString() };
+      const sundayPlan = puesto.sundayPlan || "none";
+      const sundayDates = getPuestoSundayDates(sundayPlan).map((date) => date.toISOString());
+      const next = { ...puesto, id, numero: Number(puesto.numero), importe: Number(puesto.importe), sundayPlan, sundayDates, updatedAt: new Date().toISOString() };
       const index = draft.puestos.findIndex((item) => item.id === id);
       if (index >= 0) draft.puestos[index] = next;
       else draft.puestos.unshift(next);
@@ -1672,8 +1723,8 @@ export function App() {
       amount: Number(form.amount),
       date: form.date || new Date().toISOString(),
       paymentType: form.paymentType || "simple",
-      sundayDates: form.paymentType === "month-sundays" ? form.sundayDates || [] : [],
-      perSundayAmount: form.paymentType === "month-sundays" ? Number(form.perSundayAmount || 0) : 0,
+      sundayDates: ["month-sundays", "puesto-sundays", "manual-sundays"].includes(form.paymentType) ? form.sundayDates || [] : [],
+      perSundayAmount: ["month-sundays", "puesto-sundays", "manual-sundays"].includes(form.paymentType) ? Number(form.perSundayAmount || 0) : 0,
     };
     updateState((draft) => {
       const draftPuesto = draft.puestos.find((item) => item.id === puesto.id);
@@ -1757,6 +1808,27 @@ export function App() {
     if (carTicket && ids.includes(carTicket.id)) setCarTicket(null);
   };
 
+  const markCarExited = (carId) => {
+    updateState((draft) => {
+      const car = draft.cars.find((item) => item.id === carId);
+      if (!car || car.exitedAt) return;
+      const previous = { ...car };
+      car.exitedAt = new Date().toISOString();
+      car.exitedBy = currentUser?.username || "Sin usuario";
+      draft.carAudit = draft.carAudit || [];
+      draft.carAudit.unshift({
+        id: crypto.randomUUID(),
+        action: "exit",
+        carId,
+        user: currentUser?.username || "Sin usuario",
+        date: new Date().toISOString(),
+        before: previous,
+        after: { ...car },
+        reason: "Salida controlada por QR",
+      });
+    });
+  };
+
   if (!currentUser) {
     return showLogin
       ? <LoginScreen onLogin={login} syncStatus={syncStatus} onBack={() => setShowLogin(false)} />
@@ -1801,7 +1873,77 @@ export function App() {
 
       {editingPuesto && <PuestoModal puesto={editingPuesto} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
       {editingUser && <UserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={saveUser} />}
+      {verificationTarget && (
+        <VerificationModal
+          target={verificationTarget}
+          state={state}
+          onClose={() => {
+            setVerificationTarget("");
+            window.history.replaceState({}, "", window.location.pathname);
+          }}
+          onCarExit={markCarExited}
+        />
+      )}
     </div>
+  );
+}
+
+function VerificationModal({ target, state, onClose, onCarExit }) {
+  const [type, id] = String(target || "").split(":");
+  const payment = type === "payment" ? state.payments.find((item) => item.id === id) : null;
+  const car = type === "car" ? state.cars.find((item) => item.id === id) : null;
+  const deletedCar = type === "car" && !car
+    ? state.carAudit?.find((item) => item.carId === id && item.action === "delete")
+    : null;
+  const isValidPayment = Boolean(payment);
+  const isValidCar = Boolean(car);
+
+  return (
+    <dialog className="modal" open>
+      <section className="modal-card verification-card">
+        <div className="panel-head">
+          <h3>Control por QR</h3>
+          <button className="icon" type="button" onClick={onClose}>x</button>
+        </div>
+        {type === "payment" && (
+          <div className={`verification-result ${isValidPayment ? "ok" : "danger"}`}>
+            <strong>{isValidPayment ? "Pago verificado" : "Pago no encontrado"}</strong>
+            {payment ? (
+              <>
+                <p>{payment.sector} {payment.numero} - {payment.name}</p>
+                <p>{payment.concept} | {payment.method} | {pesos.format(payment.amount)}</p>
+                <p>{payment.sundayDates?.length ? payment.sundayDates.map((date) => formatDateOnly(date)).join(" | ") : formatDate(payment.date)}</p>
+              </>
+            ) : (
+              <p>El QR no coincide con un cobro vigente del sistema.</p>
+            )}
+          </div>
+        )}
+        {type === "car" && (
+          <div className={`verification-result ${isValidCar && !car.exitedAt ? "ok" : "danger"}`}>
+            <strong>{isValidCar ? (car.exitedAt ? "Auto ya marcado como salido" : "Auto dentro de playa") : "Auto no vigente"}</strong>
+            {car ? (
+              <>
+                <p>{car.plate} | {car.brand} | {car.color}</p>
+                <p>{car.entryUser || "Sin entrada"} | {pesos.format(car.amount)} | Ingreso: {formatDate(car.date)}</p>
+                {car.exitedAt && <p>Salida: {formatDate(car.exitedAt)} | {car.exitedBy || "-"}</p>}
+                <button className="primary" disabled={Boolean(car.exitedAt)} onClick={() => onCarExit(car.id)}>
+                  Marcar salida
+                </button>
+              </>
+            ) : (
+              <p>{deletedCar ? "Este auto fue borrado del sistema." : "El QR no coincide con un auto vigente."}</p>
+            )}
+          </div>
+        )}
+        {!["payment", "car"].includes(type) && (
+          <div className="verification-result danger">
+            <strong>QR invalido</strong>
+            <p>El codigo no pertenece a un comprobante reconocido por la app.</p>
+          </div>
+        )}
+      </section>
+    </dialog>
   );
 }
 
@@ -2106,34 +2248,86 @@ function Puestos({ state, editPuesto }) {
 function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastPayment }) {
   const occupied = state.puestos.filter((p) => p.ocupacion === "ocupado").sort(comparePuestos);
   const monthSundays = getCurrentMonthSundays();
-  const [form, setForm] = useState({ puestoId: occupied[0]?.id || "", paymentType: "simple", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+  const firstPuesto = occupied[0];
+  const firstPuestoSundayDates = firstPuesto?.sundayDates?.length ? firstPuesto.sundayDates : [];
+  const [form, setForm] = useState({
+    puestoId: firstPuesto?.id || "",
+    paymentType: firstPuestoSundayDates.length ? "puesto-sundays" : "simple",
+    concept: firstPuestoSundayDates.length ? getPuestoSundayPlanLabel(firstPuesto.sundayPlan) : "Pago mensual total",
+    method: "Efectivo",
+    amount: firstPuestoSundayDates.length ? Number(firstPuesto.importe || 0) * firstPuestoSundayDates.length : firstPuesto?.importe || 0,
+    sundayDates: firstPuestoSundayDates,
+    perSundayAmount: firstPuestoSundayDates.length ? Number(firstPuesto.importe || 0) : 0,
+  });
   const [selected, setSelected] = useState([]);
   const [ticketMode, setTicketMode] = useState("single");
   const puesto = state.puestos.find((p) => p.id === form.puestoId);
+  const puestoSundayDates = puesto?.sundayDates?.length ? puesto.sundayDates : [];
 
   useEffect(() => {
     if (!puesto || form.id) return;
+    const hasPuestoSundays = puestoSundayDates.length > 0;
     setForm((current) => ({
       ...current,
-      amount: current.paymentType === "month-sundays" ? Number(puesto.importe || 0) * monthSundays.length : puesto.importe,
-      perSundayAmount: current.paymentType === "month-sundays" ? Number(puesto.importe || 0) : 0,
+      paymentType: hasPuestoSundays ? "puesto-sundays" : current.paymentType,
+      concept: hasPuestoSundays ? getPuestoSundayPlanLabel(puesto.sundayPlan) : current.concept,
+      amount: hasPuestoSundays
+        ? Number(puesto.importe || 0) * puestoSundayDates.length
+        : current.paymentType === "month-sundays"
+          ? Number(puesto.importe || 0) * monthSundays.length
+          : puesto.importe,
+      sundayDates: hasPuestoSundays ? puestoSundayDates : current.sundayDates,
+      perSundayAmount: (hasPuestoSundays || current.paymentType === "month-sundays") ? Number(puesto.importe || 0) : 0,
     }));
   }, [form.puestoId, form.paymentType]);
 
   const resetForm = () => {
-    setForm({ puestoId: occupied[0]?.id || "", paymentType: "simple", concept: "Canon mensual", method: "Efectivo", amount: occupied[0]?.importe || 0 });
+    const first = occupied[0];
+    const sundayDates = first?.sundayDates?.length ? first.sundayDates : [];
+    setForm({
+      puestoId: first?.id || "",
+      paymentType: sundayDates.length ? "puesto-sundays" : "simple",
+      concept: sundayDates.length ? getPuestoSundayPlanLabel(first.sundayPlan) : "Pago mensual total",
+      method: "Efectivo",
+      amount: sundayDates.length ? Number(first.importe || 0) * sundayDates.length : first?.importe || 0,
+      sundayDates,
+      perSundayAmount: sundayDates.length ? Number(first.importe || 0) : 0,
+    });
   };
 
   const changePaymentType = (paymentType) => {
-    const sundayDates = monthSundays.map((date) => date.toISOString());
+    const sundayDates = paymentType === "puesto-sundays"
+      ? puestoSundayDates
+      : monthSundays.map((date) => date.toISOString());
     const perSundayAmount = Number(puesto?.importe || 0);
     setForm({
       ...form,
       paymentType,
-      concept: paymentType === "month-sundays" ? `Domingos de ${formatMonthYear(new Date())}` : "Canon mensual",
-      amount: paymentType === "month-sundays" ? perSundayAmount * sundayDates.length : perSundayAmount,
-      sundayDates: paymentType === "month-sundays" ? sundayDates : [],
-      perSundayAmount: paymentType === "month-sundays" ? perSundayAmount : 0,
+      concept: paymentType === "puesto-sundays"
+        ? getPuestoSundayPlanLabel(puesto?.sundayPlan)
+        : paymentType === "month-sundays"
+          ? `Domingos de ${formatMonthYear(new Date())}`
+          : "Pago mensual total",
+      amount: ["month-sundays", "puesto-sundays", "manual-sundays"].includes(paymentType) ? perSundayAmount * sundayDates.length : perSundayAmount,
+      sundayDates: ["month-sundays", "puesto-sundays", "manual-sundays"].includes(paymentType) ? sundayDates : [],
+      perSundayAmount: ["month-sundays", "puesto-sundays", "manual-sundays"].includes(paymentType) ? perSundayAmount : 0,
+    });
+  };
+
+  const toggleManualSunday = (date) => {
+    const iso = date.toISOString();
+    const currentDates = form.sundayDates || [];
+    const sundayDates = currentDates.some((item) => sameCalendarDay(item, iso))
+      ? currentDates.filter((item) => !sameCalendarDay(item, iso))
+      : [...currentDates, iso];
+    const perSundayAmount = Number(puesto?.importe || 0);
+    setForm({
+      ...form,
+      paymentType: "manual-sundays",
+      concept: "Pago por domingos",
+      sundayDates,
+      perSundayAmount,
+      amount: perSundayAmount * sundayDates.length,
     });
   };
 
@@ -2193,21 +2387,65 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
           <label>Tipo de cobro
             <select value={form.paymentType || "simple"} onChange={(e) => changePaymentType(e.target.value)}>
               <option value="simple">Cobro simple</option>
+              {puestoSundayDates.length > 0 && <option value="puesto-sundays">{getPuestoSundayPlanLabel(puesto?.sundayPlan)}</option>}
               <option value="month-sundays">Todos los domingos del mes vigente</option>
             </select>
           </label>
-          {form.paymentType === "month-sundays" && (
+          {["month-sundays", "puesto-sundays", "manual-sundays"].includes(form.paymentType) && form.concept !== "Pago por domingos" && (
             <div className="month-sundays-box">
-              <strong>{monthSundays.length} domingos incluidos</strong>
-              <span>{monthSundays.map((date) => formatDateOnly(date)).join(" | ")}</span>
-              <small>Calculado como {pesos.format(Number(puesto?.importe || 0))} x {monthSundays.length}. El importe final se puede editar antes de cobrar.</small>
+              <strong>{(form.sundayDates || []).length} domingos incluidos</strong>
+              <span>{(form.sundayDates || []).map((date) => formatDateOnly(date)).join(" | ")}</span>
+              <small>Calculado como {pesos.format(Number(puesto?.importe || 0))} x {(form.sundayDates || []).length}. El importe final se puede editar antes de cobrar.</small>
             </div>
           )}
           <label>Concepto
-            <select value={form.concept} onChange={(e) => setForm({ ...form, concept: e.target.value })}>
-              <option>Canon mensual</option><option>Fin de semana</option><option>Domingos del mes</option><option>Reserva</option><option>Deuda anterior</option>
+            <select
+              value={form.concept}
+              onChange={(e) => {
+                const concept = e.target.value;
+                if (concept === "Pago por domingos") {
+                  setForm({
+                    ...form,
+                    concept,
+                    paymentType: "manual-sundays",
+                    sundayDates: form.sundayDates || [],
+                    perSundayAmount: Number(puesto?.importe || 0),
+                  });
+                  return;
+                }
+                setForm({
+                  ...form,
+                  concept,
+                  paymentType: "simple",
+                  sundayDates: [],
+                  perSundayAmount: 0,
+                  amount: puesto?.importe || form.amount,
+                });
+              }}
+            >
+              <option>Pago mensual total</option>
+              <option>Pago domingo actual</option>
+              <option>Pago por domingos</option>
+              <option>Pago deuda anterior</option>
             </select>
           </label>
+          {form.concept === "Pago por domingos" && (
+            <div className="month-sundays-box">
+              <strong>Elegir domingos a cobrar</strong>
+              <div className="sunday-choice-grid">
+                {monthSundays.map((date) => {
+                  const checked = (form.sundayDates || []).some((item) => sameCalendarDay(item, date));
+                  return (
+                    <label className="check-line" key={date.toISOString()}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleManualSunday(date)} />
+                      {formatDateOnly(date)}
+                    </label>
+                  );
+                })}
+              </div>
+              <small>{(form.sundayDates || []).length} domingos seleccionados. Total: {pesos.format(Number(form.amount || 0))}</small>
+            </div>
+          )}
           <label>Importe <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
           <label>Medio de pago
             <select value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
@@ -2523,6 +2761,17 @@ function RegisteredList({ title, items, selected, setSelected, renderMain, rende
 
 function PuestoModal({ puesto, onClose, onSave }) {
   const [form, setForm] = useState({ ...puesto });
+  const sundayPlan = form.sundayPlan || "none";
+  const selectedSundays = getPuestoSundayDates(sundayPlan);
+
+  const changeSundayPlan = (nextPlan) => {
+    setForm({
+      ...form,
+      sundayPlan: nextPlan,
+      sundayDates: getPuestoSundayDates(nextPlan).map((date) => date.toISOString()),
+    });
+  };
+
   return (
     <dialog className="modal" open>
       <form className="form modal-card" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
@@ -2542,6 +2791,20 @@ function PuestoModal({ puesto, onClose, onSave }) {
           <label>Modalidad <select value={form.modalidad} onChange={(e) => setForm({ ...form, modalidad: e.target.value })}><option>Mensual</option><option>Fin de semana</option></select></label>
           <label>Importe <input type="number" value={form.importe} onChange={(e) => setForm({ ...form, importe: e.target.value })} /></label>
         </div>
+        <label>Domingos a cobrar
+          <select value={sundayPlan} onChange={(e) => changeSundayPlan(e.target.value)}>
+            <option value="none">Sin seleccion de domingos</option>
+            <option value="current-sunday">Domingo actual</option>
+            <option value="month-remaining">Domingos restantes del mes</option>
+            <option value="month-all">Todos los domingos del mes</option>
+          </select>
+        </label>
+        {selectedSundays.length > 0 && (
+          <div className="month-sundays-box">
+            <strong>{selectedSundays.length} domingos seleccionados</strong>
+            <span>{selectedSundays.map((date) => formatDateOnly(date)).join(" | ")}</span>
+          </div>
+        )}
         <div className="grid-2">
           <label>Estado <select value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })}><option value="libre">Libre</option><option value="ocupado">Ocupado</option></select></label>
           <label>Pago <select value={form.pago} onChange={(e) => setForm({ ...form, pago: e.target.value })}><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option></select></label>
@@ -2591,6 +2854,7 @@ function Ticket({ payment, mode = "single" }) {
 
 function TicketCopy({ title, payment }) {
   const sundayDates = payment.sundayDates || [];
+  const verifyUrl = makeVerifyUrl("payment", payment.id);
   return (
     <div className="ticket-copy">
       <div className="ticket-copy-head">
@@ -2616,12 +2880,14 @@ function TicketCopy({ title, payment }) {
             <strong>{sundayDates.map((date) => formatDateOnly(date)).join(" | ")}</strong>
           </div>
         )}
+        <QrImage value={verifyUrl} />
       </div>
     </div>
   );
 }
 
 function CarTicket({ car }) {
+  const verifyUrl = makeVerifyUrl("car", car.id);
   return (
     <>
       <h3>Feria Nicolas Serpa</h3>
@@ -2638,8 +2904,26 @@ function CarTicket({ car }) {
       <p className="ticket-warning">
         Por favor, controle que el numero de patente ingresado sea correcto y este legible, sin correcciones. De lo contrario, el seguro de esta playa no tendra validez.
       </p>
+      <QrImage value={verifyUrl} />
     </>
   );
+}
+
+function QrImage({ value }) {
+  const [src, setSrc] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+    makeQrDataUrl(value).then((dataUrl) => {
+      if (isMounted) setSrc(dataUrl);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [value]);
+
+  if (!src) return null;
+  return <img className="ticket-qr" src={src} alt="QR de verificacion" />;
 }
 
 function ActivityList({ payments }) {
