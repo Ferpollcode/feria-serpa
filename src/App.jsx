@@ -1969,7 +1969,10 @@ function VerificationModal({ target, state, onClose, onCarExit }) {
   const deletedCar = type === "car" && !car
     ? state.carAudit?.find((item) => item.carId === id && item.action === "delete")
     : null;
-  const isValidPayment = Boolean(payment);
+  const paymentPuesto = payment
+    ? state.puestos.find((item) => item.id === (payment.puestoId || getPuestoId(payment.sector, payment.numero)))
+    : null;
+  const isPaymentPaid = Boolean(payment && (!paymentPuesto || paymentPuesto.pago === "pagado"));
   const isValidCar = Boolean(car);
 
   return (
@@ -1980,12 +1983,14 @@ function VerificationModal({ target, state, onClose, onCarExit }) {
           <button className="icon" type="button" onClick={onClose}>x</button>
         </div>
         {type === "payment" && (
-          <div className={`verification-result ${isValidPayment ? "ok" : "danger"}`}>
-            <strong>{isValidPayment ? "Pago verificado" : "Pago no encontrado"}</strong>
+          <div className={`verification-result ${isPaymentPaid ? "ok" : "danger"}`}>
+            <strong>{isPaymentPaid ? "Pagado" : "No pagado"}</strong>
             {payment ? (
               <>
+                <div className={`payment-status-pill ${isPaymentPaid ? "ok" : "danger"}`}>Estado: {isPaymentPaid ? "Pagado" : "No pagado"}</div>
                 <p>{payment.sector} {payment.numero} - {payment.name}</p>
                 <p>{payment.concept} | {payment.method} | {pesos.format(payment.amount)}</p>
+                {paymentPuesto && <p>Estado actual del puesto: {paymentPuesto.pago === "pagado" ? "Pagado" : "No pagado"}</p>}
                 <p>{payment.sundayDates?.length ? payment.sundayDates.map((date) => formatDateOnly(date)).join(" | ") : formatDate(payment.date)}</p>
               </>
             ) : (
@@ -2333,10 +2338,33 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
     sundayDates: firstPuestoSundayDates,
     perSundayAmount: firstPuestoSundayDates.length ? Number(firstPuesto.importe || 0) : 0,
   });
+  const [puestoQuery, setPuestoQuery] = useState("");
   const [selected, setSelected] = useState([]);
   const [ticketMode, setTicketMode] = useState("single");
   const puesto = state.puestos.find((p) => p.id === form.puestoId);
   const puestoSundayDates = puesto?.sundayDates?.length ? puesto.sundayDates : [];
+  const normalizeSearch = (value) => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  const puestoSearch = normalizeSearch(puestoQuery);
+  const searchMatches = puestoSearch
+    ? occupied.filter((p) => {
+      const text = normalizeSearch([
+        p.sector,
+        p.numero,
+        `${p.sector}${p.numero}`,
+        p.nombre,
+        p.apellido,
+        fullName(p),
+      ].join(" "));
+      return text.includes(puestoSearch);
+    })
+    : occupied;
+  const visiblePuestos = puesto && !searchMatches.some((p) => p.id === puesto.id)
+    ? [puesto, ...searchMatches]
+    : searchMatches;
 
   useEffect(() => {
     if (!puesto || form.id) return;
@@ -2466,10 +2494,34 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
           {form.id && <button className="ghost" onClick={resetForm}>Nuevo cobro</button>}
         </div>
         <form className="form" onSubmit={(event) => { event.preventDefault(); collectPayment(form); resetForm(); }}>
+          <label>Buscar puestero
+            <input
+              type="search"
+              value={puestoQuery}
+              onChange={(e) => setPuestoQuery(e.target.value)}
+              placeholder="Calle, puesto, apellido o nombre"
+            />
+          </label>
+          {puestoSearch && searchMatches.length > 0 && (
+            <div className="puesto-search-results">
+              {searchMatches.slice(0, 6).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={p.id === form.puestoId ? "selected" : ""}
+                  onClick={() => setForm({ ...form, puestoId: p.id })}
+                >
+                  <strong>{p.sector} {p.numero}</strong>
+                  <span>{fullName(p) || "Sin titular"}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <label>Puesto
             <select value={form.puestoId} onChange={(e) => setForm({ ...form, puestoId: e.target.value })}>
-              {occupied.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
+              {visiblePuestos.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
             </select>
+            {puestoSearch && <small>{searchMatches.length ? `${searchMatches.length} resultado${searchMatches.length === 1 ? "" : "s"}` : "No hay puestos ocupados con ese dato."}</small>}
           </label>
           <label>Tipo de cobro
             <select value={form.paymentType || "simple"} onChange={(e) => changePaymentType(e.target.value)}>
@@ -2551,6 +2603,11 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
           onDelete={(ids) => deletePayments(ids)}
           onEdit={editPayment}
           onPrint={printPayment}
+          onSelect={(payment) => {
+            setTicketMode("single");
+            setLastPayment(payment);
+          }}
+          activeId={lastPayment?.id}
         />
       </section>
       <section className="ticket panel">
@@ -2823,18 +2880,32 @@ function UserModal({ user, onClose, onSave }) {
   );
 }
 
-function RegisteredList({ title, items, selected, setSelected, renderMain, renderDetail, onDelete, onEdit, onPrint }) {
+function RegisteredList({ title, items, selected, setSelected, renderMain, renderDetail, onDelete, onEdit, onPrint, onSelect, activeId }) {
   const toggle = (id) => setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
+  const selectItem = (item) => {
+    if (onSelect) onSelect(item);
+  };
   return (
     <div className="subsection">
       <div className="panel-head"><h3>{title}</h3><button className="ghost danger-action" disabled={!selected.length} onClick={() => { onDelete(selected); setSelected([]); }}>Borrar seleccionados ({selected.length})</button></div>
       <div className="activity">
         {items.length ? items.map((item) => (
-          <div className="activity-item" key={item.id}>
-            <input className="payment-check" type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} />
+          <div
+            className={`activity-item ${activeId === item.id ? "active" : ""} ${onSelect ? "selectable" : ""}`}
+            key={item.id}
+            role={onSelect ? "button" : undefined}
+            tabIndex={onSelect ? 0 : undefined}
+            onClick={() => selectItem(item)}
+            onKeyDown={(event) => {
+              if (!onSelect || !["Enter", " "].includes(event.key)) return;
+              event.preventDefault();
+              selectItem(item);
+            }}
+          >
+            <input className="payment-check" type="checkbox" checked={selected.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggle(item.id)} />
             <div className="activity-main"><strong>{renderMain(item)}</strong><br /><small>{renderDetail(item)}</small></div>
             <strong>{pesos.format(item.amount)}</strong>
-            <div className="item-actions">
+            <div className="item-actions" onClick={(event) => event.stopPropagation()}>
               {onEdit && <button className="ghost" onClick={() => onEdit(item)}>Editar</button>}
               {onPrint && <button className="ghost" onClick={() => onPrint(item)}>Imprimir</button>}
               <button className="ghost danger-action" onClick={() => onDelete([item.id])}>Borrar</button>
