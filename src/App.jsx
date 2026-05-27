@@ -38,6 +38,7 @@ const titles = {
 };
 
 const sessionKey = "feria-serpa-current-user";
+const syncPendingKey = "feria-serpa-pending-sync";
 
 const receiptPrintStyles = `
   @page {
@@ -1613,6 +1614,7 @@ export function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [hasPendingSync, setHasPendingSync] = useState(() => localStorage.getItem(syncPendingKey) === "1");
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -1622,12 +1624,59 @@ export function App() {
   const appUsers = state.users?.length ? state.users : defaultUsers;
   const isAdmin = currentUser?.role === "admin";
   const canManage = isAdmin || currentUser?.role === "maestro";
-  const statusLabel = isOnline ? syncStatus : "Sin conexion: trabajando offline";
+  const statusLabel = !isOnline
+    ? "Sin conexion: cambios guardados en este equipo"
+    : hasPendingSync
+      ? "Pendiente de sincronizar con Supabase"
+      : syncStatus;
+
+  const markPendingSync = () => {
+    localStorage.setItem(syncPendingKey, "1");
+    setHasPendingSync(true);
+  };
+
+  const clearPendingSync = () => {
+    localStorage.removeItem(syncPendingKey);
+    setHasPendingSync(false);
+  };
+
+  const syncStateToRemote = async (nextState, successMessage = "Guardado en Supabase") => {
+    if (!isSupabaseConfigured) {
+      clearPendingSync();
+      setSyncStatus("Guardado local");
+      return;
+    }
+    if (!navigator.onLine) {
+      markPendingSync();
+      setSyncStatus("Pendiente de sincronizar con Supabase");
+      return;
+    }
+    try {
+      await saveRemoteState(nextState);
+      clearPendingSync();
+      setSyncStatus(successMessage);
+    } catch {
+      markPendingSync();
+      setSyncStatus("No se pudo guardar en Supabase, queda pendiente");
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
+    const localState = loadState();
+    const pendingLocalSync = localStorage.getItem(syncPendingKey) === "1";
 
-    loadRemoteState(loadState())
+    if (pendingLocalSync) {
+      setState(localState);
+      saveState(localState);
+      setSyncStatus("Pendiente de sincronizar con Supabase");
+      setIsHydrated(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    loadRemoteState(localState)
       .then(({ state: remoteState, source }) => {
         if (!isMounted) return;
         setState(remoteState);
@@ -1650,15 +1699,19 @@ export function App() {
   useEffect(() => {
     if (!isHydrated) return;
     saveState(state);
+    markPendingSync();
 
     const timeout = window.setTimeout(() => {
-      saveRemoteState(state)
-        .then(() => setSyncStatus(isSupabaseConfigured ? "Guardado en Supabase" : "Guardado local"))
-        .catch(() => setSyncStatus("No se pudo guardar en Supabase, queda respaldo local"));
+      syncStateToRemote(state);
     }, 500);
 
     return () => window.clearTimeout(timeout);
   }, [isHydrated, state]);
+
+  useEffect(() => {
+    if (!isHydrated || !isOnline || !hasPendingSync) return;
+    syncStateToRemote(loadState(), "Sincronizado con Supabase");
+  }, [isHydrated, isOnline, hasPendingSync]);
 
   useEffect(() => {
     if (!isHydrated) return undefined;
