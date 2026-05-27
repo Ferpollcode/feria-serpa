@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
 import { carBrands, carColors, navItems, rubros, sectorRanges, sectors, users as defaultUsers } from "./data.js";
@@ -1607,6 +1607,17 @@ function allowedViewsForRole(role, allowedViews = []) {
   return allowedViews.filter((viewId) => viewId !== "usuarios");
 }
 
+function useLockBodyScroll(locked) {
+  useLayoutEffect(() => {
+    if (!locked) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [locked]);
+}
+
 export function App() {
   const [state, setState] = useState(loadState);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -3040,6 +3051,7 @@ function RegisteredList({ title, items, selected, setSelected, renderMain, rende
 }
 
 function PuestoModal({ puesto, puestos, onClose, onSave }) {
+  useLockBodyScroll(true);
   const [form, setForm] = useState({ ...puesto });
   const sundayPlan = form.sundayPlan || "none";
   const selectedSundays = getPuestoSundayDates(sundayPlan);
@@ -3094,17 +3106,9 @@ function PuestoModal({ puesto, puestos, onClose, onSave }) {
         <div className="grid-2">
           <label>Sector <select value={form.sector} onChange={(e) => changeSector(e.target.value)}>{sectors.map((s) => <option key={s}>{s}</option>)}</select></label>
           <label>Numero
-            <input
-              type="number"
-              list="puesto-numeros"
-              min={sectorRange.start}
-              max={sectorRange.end}
-              value={form.numero}
-              onChange={(e) => changeNumero(e.target.value)}
-            />
-            <datalist id="puesto-numeros">
+            <select value={form.numero} onChange={(e) => changeNumero(e.target.value)}>
               {sectorNumbers.map((numero) => <option key={numero} value={numero}>{numero}</option>)}
-            </datalist>
+            </select>
             <small>Rango permitido: {sectorRange.start} a {sectorRange.end}</small>
             {isSelectedOccupied && <small className="field-error">Este puesto ya esta ocupado por {fullName(selectedExistingPuesto) || "otro puestero"}.</small>}
           </label>

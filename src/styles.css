@@ -824,8 +824,9 @@ button,
 .split,
 .payment-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
   gap: 18px;
+  align-items: start;
 }
 
 #dashboard .split {
@@ -1467,6 +1468,7 @@ td:nth-child(8) {
   display: grid;
   align-content: start;
   gap: 16px;
+  min-width: 0;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95)),
     radial-gradient(circle at top right, rgba(242, 106, 33, 0.1), transparent 220px);
@@ -1636,6 +1638,7 @@ td:nth-child(8) {
   background: transparent;
   width: min(680px, calc(100vw - 24px));
   margin: auto;
+  overflow: hidden;
 }
 
 .modal::backdrop {
@@ -1648,6 +1651,9 @@ td:nth-child(8) {
   padding: 18px;
   border: 1px solid var(--line);
   box-shadow: 0 24px 60px rgba(16, 24, 40, 0.24);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .ticket-modal-card {
@@ -2295,6 +2301,7 @@ dialog[open].modal {
   height: 100dvh;
   overflow: hidden;
   z-index: 1300;
+  padding: 16px;
 }
 
 /* Responsive hardening across the full app. Kept as overrides so existing
@@ -2309,10 +2316,14 @@ dialog[open].modal {
   }
 
   .split,
-  .payment-layout,
+  .payment-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+    gap: 14px;
+  }
+
   #dashboard .split,
   .dashboard-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.65fr);
   }
 
   .table-wrap {
@@ -2333,6 +2344,13 @@ dialog[open].modal {
 }
 
 @media screen and (max-width: 900px) {
+  .split,
+  .payment-layout,
+  #dashboard .split,
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
   .login-screen {
     align-items: start;
     padding: 18px;
@@ -2515,11 +2533,6 @@ dialog[open].modal {
 
   .car-ticket {
     margin-top: 12px;
-  }
-
-  dialog[open].modal {
-    place-items: start center;
-    padding: 10px;
   }
 
   .modal {
