@@ -1598,6 +1598,13 @@ const emptyUser = {
   allowedViews: ["playa"],
 };
 
+function allowedViewsForRole(role, allowedViews = []) {
+  if (role === "admin") return navItems.map(([id]) => id);
+  if (role === "entrada") return ["playa"];
+  if (role === "cobrador") return ["cobranza"];
+  return allowedViews.filter((viewId) => viewId !== "usuarios");
+}
+
 export function App() {
   const [state, setState] = useState(loadState);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -1605,6 +1612,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState(() => loadSessionUser());
   const [showLogin, setShowLogin] = useState(false);
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
   const [editingPuesto, setEditingPuesto] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -1614,6 +1622,7 @@ export function App() {
   const appUsers = state.users?.length ? state.users : defaultUsers;
   const isAdmin = currentUser?.role === "admin";
   const canManage = isAdmin || currentUser?.role === "maestro";
+  const statusLabel = isOnline ? syncStatus : "Sin conexion: trabajando offline";
 
   useEffect(() => {
     let isMounted = true;
@@ -1665,6 +1674,16 @@ export function App() {
   }, [isHydrated]);
 
   useEffect(() => {
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!currentUser) return;
     if (!currentUser.allowedViews.includes(view)) setView(currentUser.allowedViews[0]);
   }, [currentUser, view]);
@@ -1677,10 +1696,11 @@ export function App() {
       return;
     }
     if (JSON.stringify(savedUser.allowedViews) !== JSON.stringify(currentUser.allowedViews) || savedUser.role !== currentUser.role) {
+      const allowedViews = allowedViewsForRole(savedUser.role, savedUser.allowedViews);
       const sessionUser = {
         username: savedUser.username,
         role: savedUser.role,
-        allowedViews: savedUser.role === "admin" ? navItems.map(([id]) => id) : savedUser.allowedViews,
+        allowedViews,
       };
       localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
       setCurrentUser(sessionUser);
@@ -1694,7 +1714,7 @@ export function App() {
     const sessionUser = {
       username: user.username,
       role: user.role,
-      allowedViews: user.allowedViews,
+      allowedViews: allowedViewsForRole(user.role, user.allowedViews),
     };
     localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
     setCurrentUser(sessionUser);
@@ -1714,7 +1734,7 @@ export function App() {
   const saveUser = (user) => {
     const username = user.username.trim().toUpperCase().replace(/\s+/g, " ");
     const role = user.role || "entrada";
-    const allowedViews = role === "admin" ? navItems.map(([id]) => id) : user.allowedViews.filter((viewId) => viewId !== "usuarios");
+    const allowedViews = allowedViewsForRole(role, user.allowedViews);
 
     if (!username || !user.password.trim()) {
       window.alert("Usuario y contrasena son obligatorios.");
@@ -1905,7 +1925,7 @@ export function App() {
 
   if (!currentUser) {
     return showLogin
-      ? <LoginScreen onLogin={login} syncStatus={syncStatus} onBack={() => setShowLogin(false)} />
+      ? <LoginScreen onLogin={login} syncStatus={statusLabel} onBack={() => setShowLogin(false)} />
       : <LandingPage onAccess={() => setShowLogin(true)} />;
   }
 
@@ -1917,6 +1937,7 @@ export function App() {
           <div>
             <p className="eyebrow">Operacion diaria</p>
             <h2>{titles[view]}</h2>
+            <span className={`sync-status ${isOnline ? "" : "offline"}`}>{statusLabel}</span>
           </div>
           {canManage && (
             <div className="top-actions">
@@ -1972,7 +1993,7 @@ function VerificationModal({ target, state, onClose, onCarExit }) {
   const paymentPuesto = payment
     ? state.puestos.find((item) => item.id === (payment.puestoId || getPuestoId(payment.sector, payment.numero)))
     : null;
-  const isPaymentPaid = Boolean(payment && (!paymentPuesto || paymentPuesto.pago === "pagado"));
+  const isPaymentPaid = Boolean(payment);
   const isValidCar = Boolean(car);
 
   return (
@@ -1984,7 +2005,7 @@ function VerificationModal({ target, state, onClose, onCarExit }) {
         </div>
         {type === "payment" && (
           <div className={`verification-result ${isPaymentPaid ? "ok" : "danger"}`}>
-            <strong>{isPaymentPaid ? "Pagado" : "No pagado"}</strong>
+            <strong>{isPaymentPaid ? "Ticket pagado" : "Ticket no pagado"}</strong>
             {payment ? (
               <>
                 <div className={`payment-status-pill ${isPaymentPaid ? "ok" : "danger"}`}>Estado: {isPaymentPaid ? "Pagado" : "No pagado"}</div>
@@ -2842,7 +2863,7 @@ function UserModal({ user, onClose, onSave }) {
     setForm({
       ...form,
       role,
-      allowedViews: role === "admin" ? navItems.map(([id]) => id) : form.allowedViews.filter((id) => id !== "usuarios"),
+      allowedViews: allowedViewsForRole(role, form.allowedViews),
     });
   };
 
@@ -2855,14 +2876,21 @@ function UserModal({ user, onClose, onSave }) {
         <label>Rol
           <select value={form.role} onChange={(e) => changeRole(e.target.value)}>
             <option value="entrada">Entrada</option>
+            <option value="cobrador">Cobrador</option>
             <option value="maestro">Operador completo</option>
             <option value="admin">Admin</option>
           </select>
         </label>
         <div className="permissions-box">
           <strong>Permisos</strong>
-          {isAdminRole ? (
-            <p className="muted-text">El admin tiene acceso completo, incluida la gestion de usuarios.</p>
+          {isAdminRole || form.role === "entrada" || form.role === "cobrador" ? (
+            <p className="muted-text">
+              {isAdminRole
+                ? "El admin tiene acceso completo, incluida la gestion de usuarios."
+                : form.role === "cobrador"
+                  ? "El cobrador solo accede a Cobranza y puede controlar tickets por QR."
+                  : "Entrada solo accede a Playa de autos."}
+            </p>
           ) : (
             <div className="permissions-grid">
               {permissionItems.map(([id, label]) => (
@@ -2994,6 +3022,7 @@ function Ticket({ payment, mode = "single" }) {
             payment={{
               ...payment,
               id: `${payment.id}-${date}`,
+              verifyId: payment.id,
               concept: `Domingo ${formatDateOnly(date)}`,
               amount,
             }}
@@ -3012,7 +3041,7 @@ function Ticket({ payment, mode = "single" }) {
 
 function TicketCopy({ title, payment }) {
   const sundayDates = payment.sundayDates || [];
-  const verifyUrl = makeVerifyUrl("payment", payment.id);
+  const verifyUrl = makeVerifyUrl("payment", payment.verifyId || payment.id);
   return (
     <div className="ticket-copy">
       <div className="ticket-copy-head">

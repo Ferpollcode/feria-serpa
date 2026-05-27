@@ -595,6 +595,12 @@ button,
   white-space: nowrap;
 }
 
+.sync-status.offline {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
 .security-indicator {
   min-height: 34px;
   display: inline-flex;

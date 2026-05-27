@@ -124,6 +124,10 @@ export function normalizeState(state) {
 function normalizeUsers(value) {
   const appUsers = Array.isArray(value) && value.length ? value : users;
   const allViews = navItems.map(([id]) => id);
+  const fixedViewsByRole = {
+    entrada: ["playa"],
+    cobrador: ["cobranza"],
+  };
   let hasAdmin = appUsers.some((user) => user.role === "admin");
   const requiredUsers = users.filter((user) => user.role === "admin");
 
@@ -133,6 +137,7 @@ function normalizeUsers(value) {
       return { ...user, role: "admin", allowedViews: allViews };
     }
     if (user.role === "admin") return { ...user, allowedViews: allViews };
+    if (fixedViewsByRole[user.role]) return { ...user, allowedViews: fixedViewsByRole[user.role] };
     return {
       ...user,
       allowedViews: Array.isArray(user.allowedViews) && user.allowedViews.length ? user.allowedViews : ["playa"],

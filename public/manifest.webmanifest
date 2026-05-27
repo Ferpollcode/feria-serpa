@@ -1,0 +1,19 @@
+{
+  "name": "Feria Nicolas Serpa",
+  "short_name": "Feria Serpa",
+  "description": "Gestion diaria de puestos, cobranza, tickets y playa de autos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf4",
+  "theme_color": "#0f766e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/logo-feria-serpa.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
