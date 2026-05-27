@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
-import { carBrands, carColors, navItems, rubros, sectors, users as defaultUsers } from "./data.js";
+import { carBrands, carColors, navItems, rubros, sectorRanges, sectors, users as defaultUsers } from "./data.js";
 import { loadRemoteState, saveRemoteState, subscribeToRemoteState } from "./remoteState.js";
 import { isSupabaseConfigured } from "./supabaseClient.js";
 import {
   comparePuestos,
   createDemoState,
+  defaultPuestoAmount,
   endOfDay,
   formatDate,
   formatDateOnly,
@@ -1836,6 +1837,15 @@ export function App() {
 
   const savePuesto = (puesto) => {
     updateState((draft) => {
+      if (puesto.numero === "" || puesto.numero === null || puesto.numero === undefined) {
+        window.alert("Elegí un numero de puesto.");
+        return;
+      }
+      const range = sectorRanges.find((item) => item.sector === puesto.sector);
+      if (range && (Number(puesto.numero) < range.start || Number(puesto.numero) > range.end)) {
+        window.alert(`El numero del ${puesto.sector} debe estar entre ${range.start} y ${range.end}.`);
+        return;
+      }
       const id = puesto.id || getPuestoId(puesto.sector, Number(puesto.numero));
       const existing = draft.puestos.find((item) => item.sector === puesto.sector && Number(item.numero) === Number(puesto.numero));
       if (existing && existing.id !== puesto.id && existing.ocupacion === "ocupado") {
@@ -1881,6 +1891,7 @@ export function App() {
       else draft.payments.unshift(payment);
     });
     setLastPayment(payment);
+    return payment;
   };
 
   const deletePayments = (ids) => {
@@ -2019,7 +2030,7 @@ export function App() {
         </section>
       </main>
 
-      {editingPuesto && <PuestoModal puesto={editingPuesto} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
+      {editingPuesto && <PuestoModal puesto={editingPuesto} puestos={state.puestos} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
       {editingUser && <UserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={saveUser} />}
       {verificationTarget && (
         <VerificationModal
@@ -2415,6 +2426,7 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
   const [puestoQuery, setPuestoQuery] = useState("");
   const [selected, setSelected] = useState([]);
   const [ticketMode, setTicketMode] = useState("single");
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const puesto = state.puestos.find((p) => p.id === form.puestoId);
   const puestoSundayDates = puesto?.sundayDates?.length ? puesto.sundayDates : [];
   const normalizeSearch = (value) => String(value || "")
@@ -2527,6 +2539,7 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
   };
 
   const printPaymentTicket = () => {
+    if (!lastPayment) return;
     setTicketMode("single");
     printPaymentReceipt(lastPayment, "single");
   };
@@ -2560,59 +2573,79 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`${message}\n\nSe descargo el PDF del ticket para adjuntar en este chat.`)}`, "_blank");
   };
 
+  const showPaymentTicket = (payment) => {
+    setTicketMode("single");
+    setLastPayment(payment);
+    if (window.matchMedia?.("(max-width: 900px)").matches) setTicketModalOpen(true);
+  };
+
+  const renderTicketActions = () => (
+    <div className="ticket-actions print-hide">
+      <button className="ghost" disabled={!lastPayment} onClick={printPaymentTicket}>Imprimir ticket</button>
+      {lastPayment?.sundayDates?.length > 1 && <button className="ghost" onClick={printSundayTickets}>Tickets por domingo</button>}
+      <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>PDF WhatsApp</button>
+    </div>
+  );
+
   return (
-    <div className="payment-layout">
-      <section className="panel">
-        <div className="panel-head">
-          <h3>{form.id ? "Editar cobro" : "Emitir cobro"}</h3>
-          {form.id && <button className="ghost" onClick={resetForm}>Nuevo cobro</button>}
-        </div>
-        <form className="form" onSubmit={(event) => { event.preventDefault(); collectPayment(form); resetForm(); }}>
-          <label>Buscar puestero
-            <input
-              type="search"
-              value={puestoQuery}
-              onChange={(e) => setPuestoQuery(e.target.value)}
-              placeholder="Calle, puesto, apellido o nombre"
-            />
-          </label>
-          {puestoSearch && searchMatches.length > 0 && (
-            <div className="puesto-search-results">
-              {searchMatches.slice(0, 6).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={p.id === form.puestoId ? "selected" : ""}
-                  onClick={() => setForm({ ...form, puestoId: p.id })}
-                >
-                  <strong>{p.sector} {p.numero}</strong>
-                  <span>{fullName(p) || "Sin titular"}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <label>Puesto
-            <select value={form.puestoId} onChange={(e) => setForm({ ...form, puestoId: e.target.value })}>
-              {visiblePuestos.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
-            </select>
-            {puestoSearch && <small>{searchMatches.length ? `${searchMatches.length} resultado${searchMatches.length === 1 ? "" : "s"}` : "No hay puestos ocupados con ese dato."}</small>}
-          </label>
-          <label>Tipo de cobro
-            <select value={form.paymentType || "simple"} onChange={(e) => changePaymentType(e.target.value)}>
-              <option value="simple">Cobro simple</option>
-              {puestoSundayDates.length > 0 && <option value="puesto-sundays">{getPuestoSundayPlanLabel(puesto?.sundayPlan)}</option>}
-              <option value="month-sundays">Todos los domingos del mes vigente</option>
-            </select>
-          </label>
-          {["month-sundays", "puesto-sundays", "manual-sundays"].includes(form.paymentType) && form.concept !== "Pago por domingos" && (
-            <div className="month-sundays-box">
-              <strong>{(form.sundayDates || []).length} domingos incluidos</strong>
-              <span>{(form.sundayDates || []).map((date) => formatDateOnly(date)).join(" | ")}</span>
-              <small>Calculado como {pesos.format(Number(puesto?.importe || 0))} x {(form.sundayDates || []).length}. El importe final se puede editar antes de cobrar.</small>
-            </div>
-          )}
-          <label>Concepto
-            <select
+    <>
+      <div className="payment-layout">
+        <section className="panel">
+          <div className="panel-head">
+            <h3>{form.id ? "Editar cobro" : "Emitir cobro"}</h3>
+            {form.id && <button className="ghost" onClick={resetForm}>Nuevo cobro</button>}
+          </div>
+          <form className="form" onSubmit={(event) => {
+            event.preventDefault();
+            const payment = collectPayment(form);
+            if (payment) showPaymentTicket(payment);
+            resetForm();
+          }}>
+            <label>Buscar puestero
+              <input
+                type="search"
+                value={puestoQuery}
+                onChange={(e) => setPuestoQuery(e.target.value)}
+                placeholder="Calle, puesto, apellido o nombre"
+              />
+            </label>
+            {puestoSearch && searchMatches.length > 0 && (
+              <div className="puesto-search-results">
+                {searchMatches.slice(0, 6).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={p.id === form.puestoId ? "selected" : ""}
+                    onClick={() => setForm({ ...form, puestoId: p.id })}
+                  >
+                    <strong>{p.sector} {p.numero}</strong>
+                    <span>{fullName(p) || "Sin titular"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <label>Puesto
+              <select value={form.puestoId} onChange={(e) => setForm({ ...form, puestoId: e.target.value })}>
+                {visiblePuestos.map((p) => <option key={p.id} value={p.id}>{p.sector} {p.numero} - {fullName(p) || "Sin titular"} ({p.ocupacion})</option>)}
+              </select>
+              {puestoSearch && <small>{searchMatches.length ? `${searchMatches.length} resultado${searchMatches.length === 1 ? "" : "s"}` : "No hay puestos ocupados con ese dato."}</small>}
+            </label>
+            <label>Tipo de cobro
+              <select value={form.paymentType || "simple"} onChange={(e) => changePaymentType(e.target.value)}>
+                <option value="simple">Cobro simple</option>
+                {puestoSundayDates.length > 0 && <option value="puesto-sundays">{getPuestoSundayPlanLabel(puesto?.sundayPlan)}</option>}
+                <option value="month-sundays">Todos los domingos del mes vigente</option>
+              </select>
+            </label>
+            {["month-sundays", "puesto-sundays", "manual-sundays"].includes(form.paymentType) && form.concept !== "Pago por domingos" && (
+              <div className="month-sundays-box">
+                <strong>{(form.sundayDates || []).length} domingos incluidos</strong>
+                <span>{(form.sundayDates || []).map((date) => formatDateOnly(date)).join(" | ")}</span>
+                <small>Calculado como {pesos.format(Number(puesto?.importe || 0))} x {(form.sundayDates || []).length}. El importe final se puede editar antes de cobrar.</small>
+              </div>
+            )}
+            <label>Concepto
+              <select
               value={form.concept}
               onChange={(e) => {
                 const concept = e.target.value;
@@ -2641,58 +2674,66 @@ function Cobranza({ state, collectPayment, deletePayments, lastPayment, setLastP
               <option>Pago por domingos</option>
               <option>Pago deuda anterior</option>
             </select>
-          </label>
-          {form.concept === "Pago por domingos" && (
-            <div className="month-sundays-box">
-              <strong>Elegir domingos a cobrar</strong>
-              <div className="sunday-choice-grid">
-                {monthSundays.map((date) => {
-                  const checked = (form.sundayDates || []).some((item) => sameCalendarDay(item, date));
-                  return (
-                    <label className="check-line" key={date.toISOString()}>
-                      <input type="checkbox" checked={checked} onChange={() => toggleManualSunday(date)} />
-                      {formatDateOnly(date)}
-                    </label>
-                  );
-                })}
+            </label>
+            {form.concept === "Pago por domingos" && (
+              <div className="month-sundays-box">
+                <strong>Elegir domingos a cobrar</strong>
+                <div className="sunday-choice-grid">
+                  {monthSundays.map((date) => {
+                    const checked = (form.sundayDates || []).some((item) => sameCalendarDay(item, date));
+                    return (
+                      <label className="check-line" key={date.toISOString()}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleManualSunday(date)} />
+                        {formatDateOnly(date)}
+                      </label>
+                    );
+                  })}
+                </div>
+                <small>{(form.sundayDates || []).length} domingos seleccionados. Total: {pesos.format(Number(form.amount || 0))}</small>
               </div>
-              <small>{(form.sundayDates || []).length} domingos seleccionados. Total: {pesos.format(Number(form.amount || 0))}</small>
+            )}
+            <label>Importe <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
+            <label>Medio de pago
+              <select value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
+                <option>Efectivo</option><option>Transferencia</option><option>Debito</option><option>Credito</option>
+              </select>
+            </label>
+            <button className="primary">{form.id ? "Guardar cambios" : "Cobrar y generar ticket"}</button>
+          </form>
+          <RegisteredList
+            title="Cobros registrados"
+            items={state.payments}
+            selected={selected}
+            setSelected={setSelected}
+            renderMain={(p) => `${p.sector} ${p.numero} - ${p.name}`}
+            renderDetail={(p) => `${p.concept} | ${p.method} | ${formatDate(p.date)}`}
+            onDelete={(ids) => deletePayments(ids)}
+            onEdit={editPayment}
+            onPrint={printPayment}
+            onSelect={showPaymentTicket}
+            activeId={lastPayment?.id}
+          />
+        </section>
+        <section className="ticket panel">
+          <Ticket payment={lastPayment} mode={ticketMode} />
+          {renderTicketActions()}
+        </section>
+      </div>
+      {ticketModalOpen && lastPayment && (
+        <dialog className="modal ticket-modal" open onCancel={() => setTicketModalOpen(false)}>
+          <section className="modal-card ticket-modal-card">
+            <div className="panel-head">
+              <h3>Ticket de cobranza</h3>
+              <button className="icon" type="button" onClick={() => setTicketModalOpen(false)}>x</button>
             </div>
-          )}
-          <label>Importe <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
-          <label>Medio de pago
-            <select value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
-              <option>Efectivo</option><option>Transferencia</option><option>Debito</option><option>Credito</option>
-            </select>
-          </label>
-          <button className="primary">{form.id ? "Guardar cambios" : "Cobrar y generar ticket"}</button>
-        </form>
-        <RegisteredList
-          title="Cobros registrados"
-          items={state.payments}
-          selected={selected}
-          setSelected={setSelected}
-          renderMain={(p) => `${p.sector} ${p.numero} - ${p.name}`}
-          renderDetail={(p) => `${p.concept} | ${p.method} | ${formatDate(p.date)}`}
-          onDelete={(ids) => deletePayments(ids)}
-          onEdit={editPayment}
-          onPrint={printPayment}
-          onSelect={(payment) => {
-            setTicketMode("single");
-            setLastPayment(payment);
-          }}
-          activeId={lastPayment?.id}
-        />
-      </section>
-      <section className="ticket panel">
-        <Ticket payment={lastPayment} mode={ticketMode} />
-        <div className="ticket-actions print-hide">
-          <button className="ghost" onClick={printPaymentTicket}>Imprimir ticket</button>
-          {lastPayment?.sundayDates?.length > 1 && <button className="ghost" onClick={printSundayTickets}>Tickets por domingo</button>}
-          <button className="primary" disabled={!lastPayment} onClick={sendWhatsapp}>PDF WhatsApp</button>
-        </div>
-      </section>
-    </div>
+            <div className="ticket ticket-modal-preview">
+              <Ticket payment={lastPayment} mode={ticketMode} />
+              {renderTicketActions()}
+            </div>
+          </section>
+        </dialog>
+      )}
+    </>
   );
 }
 
@@ -2998,10 +3039,45 @@ function RegisteredList({ title, items, selected, setSelected, renderMain, rende
   );
 }
 
-function PuestoModal({ puesto, onClose, onSave }) {
+function PuestoModal({ puesto, puestos, onClose, onSave }) {
   const [form, setForm] = useState({ ...puesto });
   const sundayPlan = form.sundayPlan || "none";
   const selectedSundays = getPuestoSundayDates(sundayPlan);
+  const sectorRange = sectorRanges.find((range) => range.sector === form.sector) || sectorRanges[0];
+  const sectorNumbers = Array.from(
+    { length: Math.max(0, sectorRange.end - sectorRange.start + 1) },
+    (_, index) => sectorRange.start + index,
+  );
+
+  const changeSector = (sector) => {
+    const nextRange = sectorRanges.find((range) => range.sector === sector) || sectorRanges[0];
+    const currentNumber = Number(form.numero);
+    const numero = currentNumber >= nextRange.start && currentNumber <= nextRange.end
+      ? currentNumber
+      : nextRange.start;
+    setForm({
+      ...form,
+      sector,
+      numero,
+      importe: form.id ? form.importe : defaultPuestoAmount(sector),
+    });
+  };
+
+  const changeNumero = (value) => {
+    if (value === "") {
+      setForm({ ...form, numero: "" });
+      return;
+    }
+    const numero = Number(value);
+    if (Number.isNaN(numero)) return;
+    setForm({ ...form, numero });
+  };
+  const selectedExistingPuesto = puestos.find((item) => item.sector === form.sector && Number(item.numero) === Number(form.numero));
+  const isSelectedOccupied = Boolean(
+    selectedExistingPuesto
+    && selectedExistingPuesto.id !== form.id
+    && selectedExistingPuesto.ocupacion === "ocupado",
+  );
 
   const changeSundayPlan = (nextPlan) => {
     setForm({
@@ -3016,8 +3092,22 @@ function PuestoModal({ puesto, onClose, onSave }) {
       <form className="form modal-card" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
         <div className="panel-head"><h3>{form.id ? "Editar puesto" : "Nuevo puesto"}</h3><button className="icon" type="button" onClick={onClose}>x</button></div>
         <div className="grid-2">
-          <label>Sector <select value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })}>{sectors.map((s) => <option key={s}>{s}</option>)}</select></label>
-          <label>Numero <input type="number" value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></label>
+          <label>Sector <select value={form.sector} onChange={(e) => changeSector(e.target.value)}>{sectors.map((s) => <option key={s}>{s}</option>)}</select></label>
+          <label>Numero
+            <input
+              type="number"
+              list="puesto-numeros"
+              min={sectorRange.start}
+              max={sectorRange.end}
+              value={form.numero}
+              onChange={(e) => changeNumero(e.target.value)}
+            />
+            <datalist id="puesto-numeros">
+              {sectorNumbers.map((numero) => <option key={numero} value={numero}>{numero}</option>)}
+            </datalist>
+            <small>Rango permitido: {sectorRange.start} a {sectorRange.end}</small>
+            {isSelectedOccupied && <small className="field-error">Este puesto ya esta ocupado por {fullName(selectedExistingPuesto) || "otro puestero"}.</small>}
+          </label>
         </div>
         <div className="grid-2">
           <label>Nombre <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></label>
@@ -3048,7 +3138,7 @@ function PuestoModal({ puesto, onClose, onSave }) {
           <label>Estado <select value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })}><option value="libre">Libre</option><option value="ocupado">Ocupado</option></select></label>
           <label>Pago <select value={form.pago} onChange={(e) => setForm({ ...form, pago: e.target.value })}><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option></select></label>
         </div>
-        <button className="primary">Guardar puesto</button>
+        <button className="primary" disabled={isSelectedOccupied}>Guardar puesto</button>
       </form>
     </dialog>
   );

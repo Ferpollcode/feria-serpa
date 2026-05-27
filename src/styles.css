@@ -1396,6 +1396,11 @@ td:nth-child(8) {
   font-weight: 700;
 }
 
+.field-error {
+  color: var(--danger);
+  font-weight: 900;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1645,6 +1650,19 @@ td:nth-child(8) {
   box-shadow: 0 24px 60px rgba(16, 24, 40, 0.24);
 }
 
+.ticket-modal-card {
+  width: min(680px, calc(100vw - 20px));
+  max-height: calc(100dvh - 20px);
+  overflow: auto;
+}
+
+.ticket-modal-preview {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
 @media (max-width: 900px) {
   .landing-hero,
   .landing-strip {
@@ -1708,6 +1726,10 @@ td:nth-child(8) {
   .payment-layout,
   .dashboard-layout {
     grid-template-columns: 1fr;
+  }
+
+  .payment-layout > .ticket.panel {
+    display: none;
   }
 
   .topbar,
@@ -2272,7 +2294,7 @@ dialog[open].modal {
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  z-index: 1000;
+  z-index: 1300;
 }
 
 /* Responsive hardening across the full app. Kept as overrides so existing
@@ -2756,9 +2778,15 @@ dialog[open].modal {
   .app-shell {
     display: block;
     min-height: 100vh;
+    padding-top: 62px;
   }
 
   .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100;
     min-height: 0;
     width: 100%;
     display: grid;
@@ -2801,6 +2829,8 @@ dialog[open].modal {
 
   .nav.open {
     grid-column: 1 / -1;
+    max-height: calc(100dvh - 64px);
+    overflow: auto;
   }
 
   .shell {
