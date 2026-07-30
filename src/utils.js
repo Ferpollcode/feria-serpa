@@ -64,9 +64,9 @@ export function createDemoState() {
   });
 
   [
-    ["Calle A", 1, "Federico", "Fernandez", "2613830142", "Ropa", "Fin de semana", "ocupado", "pagado", 15000],
-    ["Calle A", 3, "Norma", "Silva", "1167804422", "Bazar", "Mensual", "ocupado", "pendiente", 28000],
-    ["Calle B", 108, "Carlos", "Pereyra", "1156789021", "Celulares", "Fin de semana", "ocupado", "pagado", 8000],
+    ["Calle A Oeste", 1, "Federico", "Fernandez", "2613830142", "Ropa", "Fin de semana", "ocupado", "pagado", 15000],
+    ["Calle A Oeste", 3, "Norma", "Silva", "1167804422", "Bazar", "Mensual", "ocupado", "pendiente", 28000],
+    ["Calle B Oeste", 108, "Carlos", "Pereyra", "1156789021", "Celulares", "Fin de semana", "ocupado", "pagado", 8000],
     ["Sector Rojo", 1, "Patricia", "Molina", "1177110099", "Moda femenina", "Mensual", "ocupado", "pendiente", 22000],
     ["Sector Comidas", 1, "Miguel", "Sosa", "1144009900", "Comidas rapidas", "Mensual", "ocupado", "pagado", 35000],
   ].forEach(([sector, numero, nombre, apellido, telefono, rubro, modalidad, ocupacion, pago, importe]) => {
@@ -104,6 +104,8 @@ export function saveState(state) {
 
 export function normalizeState(state) {
   const normalizedUsers = normalizeUsers(state?.users);
+  const normalizedPuestos = normalizePuestos(state?.puestos);
+  const normalizedPayments = normalizePayments(state?.payments, normalizedPuestos);
   return {
     users,
     puestos: [],
@@ -113,12 +115,103 @@ export function normalizeState(state) {
     carAudit: [],
     ...state,
     users: normalizedUsers,
-    puestos: Array.isArray(state?.puestos) ? state.puestos : [],
-    payments: Array.isArray(state?.payments) ? state.payments : [],
+    puestos: normalizedPuestos,
+    payments: normalizedPayments,
     expenses: Array.isArray(state?.expenses) ? state.expenses : [],
     cars: Array.isArray(state?.cars) ? state.cars : [],
     carAudit: Array.isArray(state?.carAudit) ? state.carAudit : [],
   };
+}
+
+function normalizePuestos(value) {
+  const source = Array.isArray(value) ? value : [];
+  const byId = new Map();
+
+  source.forEach((puesto) => {
+    const normalized = normalizePuestoSector(puesto);
+    byId.set(normalized.id, normalized);
+  });
+
+  sectorRanges.forEach(({ sector, start, end }) => {
+    for (let numero = start; numero <= end; numero += 1) {
+      const id = getPuestoId(sector, numero);
+      if (!byId.has(id)) {
+        byId.set(id, {
+          id,
+          sector,
+          numero,
+          nombre: "",
+          apellido: "",
+          telefono: "",
+          rubro: "",
+          modalidad: "Mensual",
+          ocupacion: "libre",
+          pago: "pendiente",
+          importe: defaultPuestoAmount(sector),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+  });
+
+  return Array.from(byId.values()).sort(comparePuestos);
+}
+
+function normalizePayments(value, puestos) {
+  if (!Array.isArray(value)) return [];
+  const puestosByOldId = new Map();
+  puestos.forEach((puesto) => {
+    const legacySector = getLegacyStreetSector(puesto.numero);
+    if (legacySector && isStreetSector(puesto.sector)) puestosByOldId.set(getPuestoId(legacySector, puesto.numero), puesto);
+    puestosByOldId.set(puesto.id, puesto);
+  });
+
+  return value.map((payment) => {
+    const normalizedPuesto = puestosByOldId.get(payment.puestoId)
+      || normalizePuestoSector({ sector: payment.sector, numero: payment.numero });
+    return {
+      ...payment,
+      puestoId: normalizedPuesto.id,
+      sector: normalizedPuesto.sector,
+      numero: normalizedPuesto.numero,
+    };
+  });
+}
+
+function normalizePuestoSector(puesto) {
+  const numero = Number(puesto?.numero || 0);
+  const exactRange = sectorRanges.find((range) => range.sector === puesto?.sector);
+  const legacySector = getLegacyStreetSector(numero) === puesto?.sector;
+  const matchingRange = exactRange
+    || (legacySector ? sectorRanges.find((range) => range.street && numero >= range.start && numero <= range.end) : null)
+    || sectorRanges[0];
+  const sector = matchingRange.sector;
+  return {
+    ...puesto,
+    id: getPuestoId(sector, numero),
+    sector,
+    numero,
+    importe: Number(puesto?.importe || defaultPuestoAmount(sector)),
+  };
+}
+
+function getLegacyStreetSector(numero) {
+  const oldRanges = [
+    { sector: "Calle A", start: 0, end: 107 },
+    { sector: "Calle B", start: 108, end: 209 },
+    { sector: "Calle C", start: 210, end: 303 },
+    { sector: "Calle D", start: 304, end: 389 },
+    { sector: "Calle E", start: 390, end: 468 },
+    { sector: "Calle F", start: 469, end: 540 },
+    { sector: "Calle G", start: 541, end: 603 },
+    { sector: "Calle H", start: 604, end: 657 },
+    { sector: "Calle I", start: 658, end: 705 },
+  ];
+  return oldRanges.find((range) => numero >= range.start && numero <= range.end)?.sector;
+}
+
+function isStreetSector(sector) {
+  return sectorRanges.some((range) => range.street && range.sector === sector);
 }
 
 function normalizeUsers(value) {

@@ -1579,7 +1579,7 @@ async function printCarReceipt(car) {
 
 const emptyPuesto = {
   id: "",
-  sector: "Calle A",
+  sector: "Calle A Oeste",
   numero: 0,
   nombre: "",
   apellido: "",
@@ -1627,7 +1627,7 @@ export function App() {
   const [view, setView] = useState(() => loadSessionUser()?.allowedViews[0] || "dashboard");
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [hasPendingSync, setHasPendingSync] = useState(() => localStorage.getItem(syncPendingKey) === "1");
-  const [selectedMapSector, setSelectedMapSector] = useState("Calle A");
+  const [selectedMapSector, setSelectedMapSector] = useState("Calle A Oeste");
   const [editingPuesto, setEditingPuesto] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
