@@ -1695,7 +1695,7 @@ export function App() {
         if (!isMounted) return;
         setState(remoteState);
         saveState(remoteState);
-        setSyncStatus(source === "supabase" ? "Datos cargados desde Supabase" : "Datos locales listos");
+        setSyncStatus(["supabase", "supabase-normalized", "normalized-migrated"].includes(source) ? "Datos cargados desde Supabase" : "Datos locales listos");
       })
       .catch(() => {
         if (!isMounted) return;
@@ -1841,6 +1841,21 @@ export function App() {
     });
   };
 
+  const pushAuditLog = (draft, action, entity, entityId, before = null, after = null) => {
+    draft.auditLogs = draft.auditLogs || [];
+    draft.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      action,
+      entity,
+      entityId,
+      user: currentUser?.username || "Sin usuario",
+      date: new Date().toISOString(),
+      before,
+      after,
+    });
+    draft.auditLogs = draft.auditLogs.slice(0, 1000);
+  };
+
   const resetDemo = () => {
     const demo = createDemoState();
     setState(demo);
@@ -1887,6 +1902,7 @@ export function App() {
     updateState((draft) => {
       const draftPuesto = draft.puestos.find((item) => item.id === puesto.id);
       if (!draftPuesto) return;
+      const before = { ...draftPuesto };
       Object.assign(draftPuesto, {
         nombre: "",
         apellido: "",
@@ -1900,6 +1916,7 @@ export function App() {
         sundayDates: [],
         updatedAt: new Date().toISOString(),
       });
+      pushAuditLog(draft, "release", "puesto", draftPuesto.id, before, { ...draftPuesto });
     });
     setEditingPuesto(null);
   };
@@ -1912,10 +1929,12 @@ export function App() {
     if (!state.payments.length) return;
     if (!window.confirm("Borrar todos los ultimos movimientos de cobranza? Los puestos quedaran pendientes de pago.")) return;
     updateState((draft) => {
+      const deletedPayments = [...draft.payments];
       draft.payments = [];
       draft.puestos.forEach((puesto) => {
         if (puesto.ocupacion === "ocupado") puesto.pago = "pendiente";
       });
+      pushAuditLog(draft, "clear", "payments", "all", deletedPayments, []);
     });
     setLastPayment(null);
   };
@@ -1955,12 +1974,14 @@ export function App() {
   const deletePayments = (ids) => {
     if (!ids.length) return;
     updateState((draft) => {
+      const deletedPayments = draft.payments.filter((payment) => ids.includes(payment.id));
       const affected = new Set(draft.payments.filter((payment) => ids.includes(payment.id)).map((payment) => payment.puestoId));
       draft.payments = draft.payments.filter((payment) => !ids.includes(payment.id));
       affected.forEach((puestoId) => {
         const puesto = draft.puestos.find((item) => item.id === puestoId);
         if (puesto) puesto.pago = draft.payments.some((payment) => payment.puestoId === puestoId) ? "pagado" : "pendiente";
       });
+      pushAuditLog(draft, "delete", "payments", ids.join(","), deletedPayments, []);
     });
     if (lastPayment && ids.includes(lastPayment.id)) setLastPayment(null);
   };

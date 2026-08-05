@@ -84,6 +84,7 @@ export function createDemoState() {
     ],
     cars: [],
     carAudit: [],
+    auditLogs: [],
   };
 }
 
@@ -112,6 +113,7 @@ export function normalizeState(state) {
     expenses: [],
     cars: [],
     carAudit: [],
+    auditLogs: [],
     ...state,
     users: normalizedUsers,
     puestos: normalizedPuestos,
@@ -119,6 +121,7 @@ export function normalizeState(state) {
     expenses: Array.isArray(state?.expenses) ? state.expenses : [],
     cars: Array.isArray(state?.cars) ? state.cars : [],
     carAudit: Array.isArray(state?.carAudit) ? state.carAudit : [],
+    auditLogs: Array.isArray(state?.auditLogs) ? state.auditLogs : [],
   };
 }
 

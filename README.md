@@ -71,7 +71,7 @@ El resultado se genera en `dist/`.
 4. Pegarlos en `.env`.
 5. Reiniciar `npm run dev`.
 
-La app guarda el estado completo en la tabla `app_state`, fila `feria-serpa`. Si la tabla esta vacia, la primera carga sube el estado local actual como estado inicial.
+La app prioriza el modelo normalizado con tablas separadas para `puestos`, `payments`, `expenses`, `cars`, auditoria y usuarios. Si esas tablas todavia no existen, mantiene compatibilidad con la tabla anterior `app_state`, fila `feria-serpa`.
 
 Para cargar manualmente el estado base actual en Supabase:
 
@@ -79,7 +79,15 @@ Para cargar manualmente el estado base actual en Supabase:
 npm run seed:supabase
 ```
 
-El estado guardado incluye puestos, cobranzas, gastos, autos y usuarios.
+El estado guardado incluye puestos, cobranzas, gastos, autos, usuarios y auditoria.
+
+## Seguridad y escalabilidad
+
+El archivo `supabase.sql` crea tablas por entidad e indices para que la base pueda crecer sin depender de un unico JSON gigante. Esto mejora busquedas por sector, fecha, patente, pagos y reportes.
+
+Tambien existe `supabase-secure-auth.sql`, pensado para la siguiente etapa de seguridad: usar Supabase Auth y reemplazar las policies anon por policies para usuarios autenticados. No ejecutes ese archivo hasta tener usuarios creados en Supabase Auth y la app configurada para ese modo, porque si no se corta la sincronizacion desde el navegador.
+
+Acciones sensibles como liberar puestos, borrar cobranzas y limpiar movimientos quedan registradas en `auditLogs` y, con el esquema nuevo, en la tabla `audit_logs`.
 
 ## Vista previa del build
 
