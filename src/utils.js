@@ -21,9 +21,8 @@ export function comparePuestos(a, b) {
 }
 
 export function defaultPuestoAmount(sector) {
-  if (sector === "Sector Comidas") return 35000;
+  if (sector === "Sector Verdura") return 35000;
   if (sector === "Sector Rojo") return 22000;
-  if (sector === "Peluquerias") return 18000;
   return 28000;
 }
 
@@ -44,7 +43,7 @@ export function makeRecord(category, detail, amount, extras = {}) {
 
 export function createDemoState() {
   const puestos = [];
-  sectorRanges.forEach(({ sector, start, end }) => {
+  sectorRanges.filter((range) => !range.pending).forEach(({ sector, start, end }) => {
     for (let numero = start; numero <= end; numero += 1) {
       puestos.push({
         id: getPuestoId(sector, numero),
@@ -68,7 +67,7 @@ export function createDemoState() {
     ["Calle A Oeste", 3, "Norma", "Silva", "1167804422", "Bazar", "Mensual", "ocupado", "pendiente", 28000],
     ["Calle B Oeste", 108, "Carlos", "Pereyra", "1156789021", "Celulares", "Fin de semana", "ocupado", "pagado", 8000],
     ["Sector Rojo", 1, "Patricia", "Molina", "1177110099", "Moda femenina", "Mensual", "ocupado", "pendiente", 22000],
-    ["Sector Comidas", 1, "Miguel", "Sosa", "1144009900", "Comidas rapidas", "Mensual", "ocupado", "pagado", 35000],
+    ["Sector Verdura", 1, "Miguel", "Sosa", "1144009900", "Comidas rapidas", "Mensual", "ocupado", "pagado", 35000],
   ].forEach(([sector, numero, nombre, apellido, telefono, rubro, modalidad, ocupacion, pago, importe]) => {
     const puesto = puestos.find((item) => item.sector === sector && item.numero === numero);
     if (puesto) Object.assign(puesto, { nombre, apellido, telefono, rubro, modalidad, ocupacion, pago, importe });
@@ -129,10 +128,11 @@ function normalizePuestos(value) {
 
   source.forEach((puesto) => {
     const normalized = normalizePuestoSector(puesto);
+    if (!sectors.includes(normalized.sector) && !hasPuestoData(normalized)) return;
     byId.set(normalized.id, normalized);
   });
 
-  sectorRanges.forEach(({ sector, start, end }) => {
+  sectorRanges.filter((range) => !range.pending).forEach(({ sector, start, end }) => {
     for (let numero = start; numero <= end; numero += 1) {
       const id = getPuestoId(sector, numero);
       if (!byId.has(id)) {
@@ -180,12 +180,12 @@ function normalizePayments(value, puestos) {
 
 function normalizePuestoSector(puesto) {
   const numero = Number(puesto?.numero || 0);
-  const exactRange = sectorRanges.find((range) => range.sector === puesto?.sector);
-  const legacySector = getLegacyStreetSector(numero) === puesto?.sector;
+  const migratedSector = getMigratedSector(puesto?.sector, numero);
+  const exactRange = sectorRanges.find((range) => range.sector === migratedSector);
+  const legacySector = getLegacyStreetSector(numero) === migratedSector;
   const matchingRange = exactRange
-    || (legacySector ? sectorRanges.find((range) => range.street && numero >= range.start && numero <= range.end) : null)
-    || sectorRanges[0];
-  const sector = matchingRange.sector;
+    || (legacySector ? sectorRanges.find((range) => range.street && numero >= range.start && numero <= range.end) : null);
+  const sector = matchingRange?.sector || migratedSector || sectorRanges[0].sector;
   return {
     ...puesto,
     id: getPuestoId(sector, numero),
@@ -193,6 +193,22 @@ function normalizePuestoSector(puesto) {
     numero,
     importe: Number(puesto?.importe || defaultPuestoAmount(sector)),
   };
+}
+
+function getMigratedSector(sector, numero) {
+  if (sector === "Sector Comidas" && numero >= 1 && numero <= 68) return "Sector Verdura";
+  if (sector === "Sector Usado" && numero >= 69 && numero <= 402) return "Sector Verde";
+  return sector;
+}
+
+function hasPuestoData(puesto) {
+  return Boolean(
+    puesto?.ocupacion === "ocupado"
+    || puesto?.pago === "pagado"
+    || fullName(puesto)
+    || puesto?.telefono
+    || puesto?.rubro,
+  );
 }
 
 function getLegacyStreetSector(numero) {

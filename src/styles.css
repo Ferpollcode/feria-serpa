@@ -908,6 +908,20 @@ button,
   box-shadow: 0 10px 20px rgba(249, 115, 22, 0.14);
 }
 
+.street.pending,
+.street.pending:hover {
+  border-style: dashed;
+  color: var(--muted);
+  background: #f8fafc;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.street.pending .bar span {
+  width: 100% !important;
+  background: #cbd5e1;
+}
+
 .street-top {
   display: flex;
   align-items: center;
@@ -1372,6 +1386,17 @@ td:nth-child(8) {
   color: #ffffff;
   background: #d92d20;
   border-color: #d92d20;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-actions .primary {
+  margin-left: auto;
 }
 
 .bulk-action {

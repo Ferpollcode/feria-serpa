@@ -40,6 +40,7 @@ const titles = {
 
 const sessionKey = "feria-serpa-current-user";
 const syncPendingKey = "feria-serpa-pending-sync";
+const puestoReleaseUsers = ["GUSTAVO", "MARISA"];
 
 const receiptPrintStyles = `
   @page {
@@ -1636,6 +1637,7 @@ export function App() {
   const appUsers = state.users?.length ? state.users : defaultUsers;
   const isAdmin = currentUser?.role === "admin";
   const canManage = isAdmin || currentUser?.role === "maestro";
+  const canReleasePuestos = isAdmin || puestoReleaseUsers.includes(currentUser?.username);
   const statusLabel = !isOnline
     ? "Sin conexion: cambios guardados en este equipo"
     : hasPendingSync
@@ -1873,6 +1875,51 @@ export function App() {
     setEditingPuesto(null);
   };
 
+  const releasePuesto = (puesto) => {
+    if (!canReleasePuestos) {
+      window.alert("No tenes permiso para liberar puestos.");
+      return;
+    }
+    if (!puesto?.id) return;
+    const label = `${puesto.sector} ${puesto.numero}`;
+    const titular = fullName(puesto);
+    if (!window.confirm(`Liberar el puesto ${label}${titular ? ` de ${titular}` : ""}? Se borraran los datos del puestero.`)) return;
+    updateState((draft) => {
+      const draftPuesto = draft.puestos.find((item) => item.id === puesto.id);
+      if (!draftPuesto) return;
+      Object.assign(draftPuesto, {
+        nombre: "",
+        apellido: "",
+        telefono: "",
+        rubro: "",
+        modalidad: "Mensual",
+        ocupacion: "libre",
+        pago: "pendiente",
+        importe: defaultPuestoAmount(draftPuesto.sector),
+        sundayPlan: "none",
+        sundayDates: [],
+        updatedAt: new Date().toISOString(),
+      });
+    });
+    setEditingPuesto(null);
+  };
+
+  const clearPaymentMovements = () => {
+    if (!canReleasePuestos) {
+      window.alert("No tenes permiso para borrar movimientos.");
+      return;
+    }
+    if (!state.payments.length) return;
+    if (!window.confirm("Borrar todos los ultimos movimientos de cobranza? Los puestos quedaran pendientes de pago.")) return;
+    updateState((draft) => {
+      draft.payments = [];
+      draft.puestos.forEach((puesto) => {
+        if (puesto.ocupacion === "ocupado") puesto.pago = "pendiente";
+      });
+    });
+    setLastPayment(null);
+  };
+
   const collectPayment = (form) => {
     const puesto = state.puestos.find((item) => item.id === form.puestoId);
     if (!puesto || puesto.ocupacion !== "ocupado") {
@@ -2030,18 +2077,18 @@ export function App() {
               editPuesto={setEditingPuesto}
             />
           )}
-          {view === "puestos" && <Puestos state={state} editPuesto={setEditingPuesto} goCollect={(puesto) => setView("cobranza")} />}
+          {view === "puestos" && <Puestos state={state} editPuesto={setEditingPuesto} releasePuesto={releasePuesto} canReleasePuestos={canReleasePuestos} goCollect={(puesto) => setView("cobranza")} />}
           {view === "cobranza" && (
             <Cobranza state={state} collectPayment={collectPayment} deletePayments={deletePayments} lastPayment={lastPayment} setLastPayment={setLastPayment} />
           )}
           {view === "gastos" && <Gastos state={state} saveExpense={saveExpense} />}
           {view === "playa" && <Playa state={state} saveCar={saveCar} deleteCars={deleteCars} carTicket={carTicket} setCarTicket={setCarTicket} currentUser={currentUser} />}
-          {view === "estadisticas" && <Estadisticas state={state} />}
+          {view === "estadisticas" && <Estadisticas state={state} clearPaymentMovements={clearPaymentMovements} canClearPaymentMovements={canReleasePuestos} />}
           {view === "usuarios" && isAdmin && <Usuarios users={appUsers} currentUser={currentUser} editUser={setEditingUser} deleteUser={deleteUser} />}
         </section>
       </main>
 
-      {editingPuesto && <PuestoModal puesto={editingPuesto} puestos={state.puestos} onClose={() => setEditingPuesto(null)} onSave={savePuesto} />}
+      {editingPuesto && <PuestoModal puesto={editingPuesto} puestos={state.puestos} onClose={() => setEditingPuesto(null)} onSave={savePuesto} onRelease={canReleasePuestos ? releasePuesto : null} />}
       {editingUser && <UserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={saveUser} />}
       {verificationTarget && (
         <VerificationModal
@@ -2321,14 +2368,20 @@ function Dashboard({ state, selectedMapSector, setSelectedMapSector, editPuesto 
             <span>{state.puestos.length} puestos cargados</span>
           </div>
           <div className="street-grid">
-            {sectors.map((sector) => {
+            {sectorRanges.map((range) => {
+              const { sector, pending: isPending } = range;
               const all = state.puestos.filter((p) => p.sector === sector);
               const used = all.filter((p) => p.ocupacion === "ocupado").length;
               return (
-                <button key={sector} className={`street ${selectedMapSector === sector ? "active" : ""}`} onClick={() => setSelectedMapSector(sector)}>
-                  <div className="street-top"><span>{sector}</span><span>{percent(used, all.length)}%</span></div>
+                <button
+                  key={sector}
+                  className={`street ${selectedMapSector === sector ? "active" : ""} ${isPending ? "pending" : ""}`}
+                  disabled={isPending}
+                  onClick={() => setSelectedMapSector(sector)}
+                >
+                  <div className="street-top"><span>{sector}</span></div>
                   <div className="bar"><span style={{ width: `${percent(used, all.length)}%` }} /></div>
-                  <small>{used} ocupados de {all.length}</small>
+                  <small>{isPending ? "Pendiente de habilitar" : `${used} ocupados de ${all.length}`}</small>
                 </button>
               );
             })}
@@ -2362,7 +2415,17 @@ function Dashboard({ state, selectedMapSector, setSelectedMapSector, editPuesto 
   );
 }
 
-function Puestos({ state, editPuesto }) {
+function hasLoadedPuesteroData(puesto) {
+  return Boolean(
+    puesto?.ocupacion === "ocupado"
+    || fullName(puesto)
+    || puesto?.telefono
+    || puesto?.rubro
+    || puesto?.sundayDates?.length
+  );
+}
+
+function Puestos({ state, editPuesto, releasePuesto, canReleasePuestos }) {
   const [query, setQuery] = useState("");
   const [sector, setSector] = useState("");
   const [status, setStatus] = useState("");
@@ -2410,7 +2473,12 @@ function Puestos({ state, editPuesto }) {
                 <td><Badge tone={puesto.ocupacion === "ocupado" ? "occupied" : "free"}>{puesto.ocupacion}</Badge></td>
                 <td><Badge tone={puesto.pago === "pagado" ? "ok" : "danger"}>{puesto.pago}</Badge></td>
                 <td>{pesos.format(puesto.importe)}</td>
-                <td className="row-actions"><button className="ghost" onClick={() => editPuesto(puesto)}>Editar</button></td>
+                <td className="row-actions">
+                  <button className="ghost" onClick={() => editPuesto(puesto)}>Editar</button>
+                  {canReleasePuestos && hasLoadedPuesteroData(puesto) && (
+                    <button className="ghost danger-action" onClick={() => releasePuesto(puesto)}>Liberar</button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -2804,8 +2872,9 @@ function Playa({ state, saveCar, deleteCars, carTicket, setCarTicket, currentUse
   };
 
   const printRegisteredCar = (car) => {
-    setCarTicket({ ...car, entryUser: car.entryUser || currentUser?.username || "" });
-    window.setTimeout(printCarTicket, 0);
+    const ticket = { ...car, entryUser: car.entryUser || currentUser?.username || "" };
+    setCarTicket(ticket);
+    printCarReceipt(ticket);
   };
 
   return (
@@ -2854,7 +2923,7 @@ function Playa({ state, saveCar, deleteCars, carTicket, setCarTicket, currentUse
   );
 }
 
-function Estadisticas({ state }) {
+function Estadisticas({ state, clearPaymentMovements, canClearPaymentMovements }) {
   const [period, setPeriod] = useState("today");
   const range = getPeriod(period);
   const occupied = state.puestos.filter((p) => p.ocupacion === "ocupado");
@@ -2919,6 +2988,19 @@ function Estadisticas({ state }) {
           ...(unassignedCars ? [["Sin entrada", unassignedCars, maxEntryCount, pesos.format(sumAmounts(unassignedCarItems))]] : []),
         ]} />
       </section>
+      {canClearPaymentMovements && (
+        <section className="panel stats-lower">
+          <div className="panel-head">
+            <div>
+              <h3>Administrar movimientos</h3>
+              <p className="muted-text">{state.payments.length} movimientos de cobranza guardados.</p>
+            </div>
+            <button className="ghost danger-action" disabled={!state.payments.length} onClick={clearPaymentMovements}>
+              Borrar movimientos
+            </button>
+          </div>
+        </section>
+      )}
     </>
   );
 }
@@ -3050,7 +3132,7 @@ function RegisteredList({ title, items, selected, setSelected, renderMain, rende
   );
 }
 
-function PuestoModal({ puesto, puestos, onClose, onSave }) {
+function PuestoModal({ puesto, puestos, onClose, onSave, onRelease }) {
   useLockBodyScroll(true);
   const [form, setForm] = useState({ ...puesto });
   const sundayPlan = form.sundayPlan || "none";
@@ -3142,7 +3224,14 @@ function PuestoModal({ puesto, puestos, onClose, onSave }) {
           <label>Estado <select value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })}><option value="libre">Libre</option><option value="ocupado">Ocupado</option></select></label>
           <label>Pago <select value={form.pago} onChange={(e) => setForm({ ...form, pago: e.target.value })}><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option></select></label>
         </div>
-        <button className="primary" disabled={isSelectedOccupied}>Guardar puesto</button>
+        <div className="modal-actions">
+          {onRelease && hasLoadedPuesteroData(puesto) && (
+            <button className="ghost danger-action" type="button" onClick={() => onRelease(puesto)}>
+              Liberar puesto
+            </button>
+          )}
+          <button className="primary" disabled={isSelectedOccupied}>Guardar puesto</button>
+        </div>
       </form>
     </dialog>
   );

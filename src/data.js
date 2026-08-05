@@ -17,14 +17,14 @@ export const sectorRanges = [
   { sector: "Calle H Este", start: 633, end: 657, street: true },
   { sector: "Calle I Oeste", start: 658, end: 703, street: true },
   { sector: "Calle I Este", start: 704, end: 725, street: true },
-  { sector: "Sector Rojo", start: 1, end: 164 },
-  { sector: "Calle Nueva", start: 1, end: 40 },
-  { sector: "Sector Comidas", start: 1, end: 60 },
-  { sector: "Sector Usado", start: 1, end: 200 },
-  { sector: "Peluquerias", start: 1, end: 20 },
+  { sector: "Sector Rojo", start: 0, end: 168 },
+  { sector: "Sector Verdura", start: 1, end: 68 },
+  { sector: "Sector Verde", start: 69, end: 402 },
+  { sector: "Calle Nueva", start: 1, end: 58 },
+  { sector: "Sector Naranja", pending: true },
 ];
 
-export const sectors = sectorRanges.map((range) => range.sector);
+export const sectors = sectorRanges.filter((range) => !range.pending).map((range) => range.sector);
 
 export const rubros = [
   "Ropa",
