@@ -902,6 +902,12 @@ button,
   overflow-wrap: anywhere;
 }
 
+.street-range {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.15;
+}
+
 .street.active,
 .street:hover {
   border-color: #f97316;
@@ -1679,6 +1685,37 @@ td:nth-child(8) {
   max-height: calc(100dvh - 32px);
   overflow: auto;
   overscroll-behavior: contain;
+}
+
+.puesto-modal-card {
+  gap: 9px;
+  padding: 14px;
+}
+
+.puesto-modal-card .panel-head {
+  margin-bottom: 1px;
+}
+
+.puesto-modal-card label {
+  gap: 4px;
+}
+
+.puesto-modal-card input,
+.puesto-modal-card select {
+  min-height: 38px;
+}
+
+.puesto-modal-card .grid-2 {
+  gap: 10px;
+  align-items: start;
+}
+
+.puesto-modal-card .grid-2 > label {
+  align-self: start;
+}
+
+.puesto-modal-card .modal-actions {
+  margin-top: 1px;
 }
 
 .ticket-modal-card {
@@ -3165,4 +3202,80 @@ dialog[open].modal {
     display: block;
     overflow-wrap: anywhere;
   }
+}
+
+/* Densidad compacta final para prevalecer sobre los estilos responsive
+   historicos del proyecto. */
+@media screen and (min-width: 701px) {
+  .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .sidebar { padding: 12px 10px; }
+  .brand { gap: 6px; margin-bottom: 12px; padding: 0 0 6px; }
+  .brand-logo { width: 104px; height: 104px; border-width: 3px; border-radius: 16px; }
+  .brand h1 { font-size: 16px; }
+  .nav { gap: 5px; }
+  .nav-item { padding: 8px 9px; }
+  .sidebar-user { gap: 5px; margin-top: 10px; padding-top: 10px; }
+  .shell { padding: 10px 12px; }
+  .topbar { gap: 10px; margin-bottom: 8px; }
+  .topbar h2 { font-size: 22px; }
+  .top-actions,
+  .toolbar,
+  .panel-head { gap: 8px; }
+  .primary,
+  .ghost,
+  .icon { min-height: 36px; padding-inline: 11px; }
+  .icon { width: 36px; padding: 0; }
+  input,
+  select { min-height: 36px; padding-inline: 10px; }
+  .metrics { gap: 8px; margin-bottom: 8px; }
+  .metric { gap: 3px; padding: 8px 10px; }
+  .metric strong { font-size: 20px; }
+  .split,
+  .payment-layout { gap: 10px; }
+  .panel { padding: 12px; }
+  .subsection { margin-top: 12px; padding-top: 10px; }
+  .toolbar { margin-bottom: 8px; }
+  #puestos .toolbar input,
+  #puestos .toolbar select,
+  #puestos .toolbar button { min-height: 36px; }
+  th,
+  td { padding: 7px; font-size: 13px; }
+  .badge { min-height: 23px; padding-inline: 7px; font-size: 11px; }
+  .row-actions button { min-height: 29px; }
+  .activity,
+  .users-list { gap: 6px; margin-top: 8px; }
+  .activity-item,
+  .user-card { gap: 8px; padding: 8px 10px; }
+  .form { gap: 10px; }
+  .form label { gap: 4px; }
+  .grid-2 { gap: 10px; }
+  .balance-grid { gap: 8px; margin-top: 10px; }
+  .balance-grid article { padding: 10px; }
+  .balance-grid strong { margin-top: 4px; font-size: 21px; }
+  .stat-list { gap: 8px; margin-top: 10px; }
+  .stats-lower { margin-top: 10px; }
+  .street-grid { margin-top: 8px; }
+  .street-map-panel { margin-top: 10px; padding: 10px; }
+  .puesto-map { max-height: 320px; }
+  .modal-card { padding: 14px; }
+}
+
+@media screen and (max-width: 700px) {
+  .shell { padding: 6px; }
+  .topbar,
+  .toolbar { margin-bottom: 8px; }
+  .metrics,
+  .split,
+  .payment-layout { gap: 8px; }
+  .metrics { margin-bottom: 8px; }
+  .panel { padding: 10px; }
+  .form { gap: 10px; }
+  .form label { gap: 4px; }
+  input,
+  select { min-height: 42px; }
+  .activity,
+  .users-list { gap: 7px; margin-top: 8px; }
+  .activity-item,
+  .user-card { padding: 9px; }
+  .modal-card { padding: 10px; }
 }

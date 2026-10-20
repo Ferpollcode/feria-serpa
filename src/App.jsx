@@ -2401,6 +2401,9 @@ function Dashboard({ state, selectedMapSector, setSelectedMapSector, editPuesto 
                   onClick={() => setSelectedMapSector(sector)}
                 >
                   <div className="street-top"><span>{sector}</span></div>
+                  {!isPending && Number.isFinite(range.start) && Number.isFinite(range.end) && (
+                    <span className="street-range">Puestos del {range.start} al {range.end}</span>
+                  )}
                   <div className="bar"><span style={{ width: `${percent(used, all.length)}%` }} /></div>
                   <small>{isPending ? "Pendiente de habilitar" : `${used} ocupados de ${all.length}`}</small>
                 </button>
@@ -3204,7 +3207,7 @@ function PuestoModal({ puesto, puestos, onClose, onSave, onRelease }) {
 
   return (
     <dialog className="modal" open>
-      <form className="form modal-card" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
+      <form className="form modal-card puesto-modal-card" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
         <div className="panel-head"><h3>{form.id ? "Editar puesto" : "Nuevo puesto"}</h3><button className="icon" type="button" onClick={onClose}>x</button></div>
         <div className="grid-2">
           <label>Sector <select value={form.sector} onChange={(e) => changeSector(e.target.value)}>{sectors.map((s) => <option key={s}>{s}</option>)}</select></label>
@@ -3220,8 +3223,10 @@ function PuestoModal({ puesto, puestos, onClose, onSave, onRelease }) {
           <label>Nombre <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></label>
           <label>Apellido <input value={form.apellido} onChange={(e) => setForm({ ...form, apellido: e.target.value })} /></label>
         </div>
-        <label>Telefono <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} /></label>
-        <label>Rubro <input list="rubros" value={form.rubro} onChange={(e) => setForm({ ...form, rubro: e.target.value })} /></label>
+        <div className="grid-2">
+          <label>Telefono <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} /></label>
+          <label>Rubro <input list="rubros" value={form.rubro} onChange={(e) => setForm({ ...form, rubro: e.target.value })} /></label>
+        </div>
         <datalist id="rubros">{rubros.map((r) => <option key={r} value={r} />)}</datalist>
         <div className="grid-2">
           <label>Modalidad <select value={form.modalidad} onChange={(e) => setForm({ ...form, modalidad: e.target.value })}><option>Mensual</option><option>Fin de semana</option></select></label>
