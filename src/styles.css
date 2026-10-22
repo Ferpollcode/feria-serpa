@@ -3279,3 +3279,170 @@ dialog[open].modal {
   .user-card { padding: 9px; }
   .modal-card { padding: 10px; }
 }
+
+/* Ajustes responsive finales. El modal de puestos conserva dos columnas en
+   telefonos para entrar completo en pantalla sin sacrificar legibilidad. */
+@media screen and (max-width: 700px) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .nav.open {
+    margin-top: 10px;
+  }
+
+  .shell,
+  .view,
+  .panel,
+  .table-wrap {
+    max-width: 100%;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+  }
+
+  .toolbar,
+  .panel-actions,
+  .modal-actions {
+    gap: 7px;
+  }
+
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  dialog[open].modal {
+    place-items: center;
+    padding: 6px;
+  }
+
+  .puesto-modal-card {
+    width: min(100%, 540px);
+    max-height: calc(100dvh - 12px);
+    gap: 6px;
+    padding: 9px;
+    overflow: auto;
+  }
+
+  .puesto-modal-card .panel-head {
+    flex-direction: row;
+    align-items: center;
+    min-height: 34px;
+  }
+
+  .puesto-modal-card .panel-head h3 {
+    font-size: 16px;
+  }
+
+  .puesto-modal-card .panel-head .icon {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+  }
+
+  .puesto-modal-card .grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .puesto-modal-card label {
+    gap: 2px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .puesto-modal-card input,
+  .puesto-modal-card select {
+    min-height: 34px;
+    padding-inline: 7px;
+    font-size: 13px;
+  }
+
+  .puesto-modal-card small {
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .puesto-modal-card .month-sundays-box {
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 7px;
+  }
+
+  .puesto-modal-card .month-sundays-box strong,
+  .puesto-modal-card .month-sundays-box span {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .puesto-modal-card .modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .puesto-modal-card .modal-actions .primary,
+  .puesto-modal-card .modal-actions .ghost {
+    width: 100%;
+    min-height: 36px;
+    margin: 0;
+  }
+
+  .puesto-modal-card .modal-actions .primary:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .landing-nav {
+    padding-inline: 10px;
+  }
+
+  .landing-brand span {
+    max-width: 150px;
+    line-height: 1.15;
+  }
+
+  .shell {
+    padding: 5px;
+  }
+
+  .panel {
+    padding: 8px;
+  }
+
+  .puesto-modal-card {
+    padding: 7px;
+  }
+
+  .puesto-modal-card .grid-2 {
+    gap: 5px;
+  }
+}
+
+@media screen and (max-height: 620px) and (max-width: 700px) {
+  .puesto-modal-card {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .puesto-modal-card .panel-head {
+    min-height: 30px;
+  }
+
+  .puesto-modal-card input,
+  .puesto-modal-card select {
+    min-height: 30px;
+  }
+
+  .puesto-modal-card .modal-actions .primary,
+  .puesto-modal-card .modal-actions .ghost {
+    min-height: 32px;
+  }
+}
